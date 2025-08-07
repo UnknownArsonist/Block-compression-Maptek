@@ -5,6 +5,16 @@
 #include <string>
 #include <map>
 
+struct output_p {
+    int x;
+    int y;
+    int z;
+    int l;
+    int w;
+    int h;
+    std::string label;
+}
+
 void PreviousVersion_getDimensionsFromStdin(int* xc, int* yc, int* zc, int* px, int* py, int* pz) {
     char c;
     printf("%p, %p, %p, %p, %p, %p\n", xc, yc, zc, px, py, pz);
@@ -81,6 +91,22 @@ int main(int argc, char** argv) {
         printf("%c, %s\n", e.first, e.second.c_str());
     }
 
+    //check that stream data size can be equally segmented
+    //into blocks of size parent_x, parent_y, parent_z
+    if (x_count % parent_x != 0 || y_count % parent_y != 0 ) {
+
+    }
+
+
+    std::vector<std::string> 
+
+    for (int i = 0; i < x_count; i++) {
+        for (int o = 0; o < y_count; o++) {
+            for (int k = 0; k < z_count; k++) {
+                
+            }
+        }
+    }
     /*
     std::string line;
     while (getline(input_file, line)) {
