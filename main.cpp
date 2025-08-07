@@ -21,9 +21,8 @@ void PreviousVersion_getDimensionsFromStdin(int* xc, int* yc, int* zc, int* px, 
 }
 
 void getCommaSeparatedValuesFromStream(FILE *in) {}
-
 template <typename T, typename... Args>
-void getCommaSeparatedValuesFromStream(FILE *in, T* value, Args... args) {
+void getCommaSeparatedValuesFromStream(FILE* in, T* value, Args... args) {
     char c;
     *value = 0;
     while ((c = getc(in)) != EOF) {
@@ -37,16 +36,51 @@ void getCommaSeparatedValuesFromStream(FILE *in, T* value, Args... args) {
     getCommaSeparatedValuesFromStream(in, args...);
 }
 
+void getLegendFromStream(FILE* in, std::map<char, std::string>* legend) {
+    char c;
+    char key = 0;
+    std::string value = "";
+    int v = 0;
+    int n = 0;
+    while ((c = getc(in)) != EOF) {
+        if (c == ',') {
+            v++;
+        } else if (c == '\n') {
+            if (n > 0) {
+                return;
+            }
+            (*legend)[key] = value;
+            v = 0;
+            value.clear();
+            n++;
+        } else {
+            if (v == 0) {
+                key = c;
+            } else {
+                value += c;
+            }
+            n = 0;
+        }
+    }
+}
+
+/* NOTES:
+    Could use fwrite from <cstdio> instead of printf for output to stdout (more efficient)
+*/
+
 int main(int argc, char** argv) {
     FILE *input_file = fopen("test_input.txt", "r");
     int x_count, y_count, z_count, parent_x, parent_y, parent_z;
     getCommaSeparatedValuesFromStream(input_file, &x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z);
     printf("%d, %d, %d, %d, %d, %d\n", x_count, y_count, z_count, parent_x, parent_y, parent_z);
+
     std::map<char, std::string> legend;
-    char key;
-    char value[8];
-    getCommaSeparatedValuesFromStream(input_file, &key, &value);
-    printf("%s, %s\n", key, value);
+    getLegendFromStream(input_file, &legend);
+
+    for (const auto& e : legend) {
+        printf("%c, %s\n", e.first, e.second.c_str());
+    }
+
     /*
     std::string line;
     while (getline(input_file, line)) {
