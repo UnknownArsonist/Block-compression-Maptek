@@ -24,11 +24,12 @@ vector<string> StreamProcessor::split(const string &s, char delimiter)
     return tokens;
 }
 
-void StreamProcessor::start_processing()
+void StreamProcessor::startProcessing(FILE *in)
 {
-    get_headerLine();
+    getHeaderLine(in);
 }
 
+/*
 // Function to read the header line and initialize dimensions
 void StreamProcessor::get_headerLine()
 {
@@ -43,7 +44,31 @@ void StreamProcessor::get_headerLine()
     parent_z = stoi(dims[5]);
     get_tagTable();
 }
+*/
 
+void StreamProcessor::getHeaderLine(FILE *in)
+{
+    getCommaSeparatedValuesFromStream(in, &x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z);
+    getLegendFromStream(in, &tag_table);
+}
+
+void StreamProcessor::getCommaSeparatedValuesFromStream(FILE *in) {}
+template <typename T, typename... Args>
+void StreamProcessor::getCommaSeparatedValuesFromStream(FILE* in, T* value, Args... args) {
+    char c;
+    *value = 0;
+    while ((c = getc(in)) != EOF) {
+        if (c == ',' || c == '\n') {
+            break;
+        } else {
+            *value *= 10;
+            *value += (int)c - '0';
+        }
+    }
+    getCommaSeparatedValuesFromStream(in, args...);
+}
+
+/*
 // Function to read the tag table
 void StreamProcessor::get_tagTable()
 {
@@ -57,9 +82,38 @@ void StreamProcessor::get_tagTable()
     }
     process_slice();
 }
+*/
+
+void StreamProcessor::getLegendFromStream(FILE* in, std::unordered_map<char, std::string>* legend) {
+    char c;
+    char key = 0;
+    std::string value = "";
+    int v = 0;
+    int n = 0;
+    while ((c = getc(in)) != EOF) {
+        if (c == ',') {
+            v++;
+        } else if (c == '\n') {
+            if (n > 0) {
+                return;
+            }
+            (*legend)[key] = value;
+            v = 0;
+            value.clear();
+            n++;
+        } else {
+            if (v == 0) {
+                key = c;
+            } else {
+                value += c;
+            }
+            n = 0;
+        }
+    }
+}
 
 // Function to process the slice of 3D block data
-void StreamProcessor::process_slice()
+void StreamProcessor::processSlice()
 {
 
     for (int z = 0; z < z_count; ++z)
@@ -89,6 +143,13 @@ void StreamProcessor::process_slice()
                 cout << x << "," << actual_y << "," << z << ",1,1,1," << label << "\n";
             }
         }
+    }
+}
+
+void StreamProcessor::printHeader() {
+    printf("%d, %d, %d, %d, %d, %d\n", x_count, y_count, z_count, parent_x, parent_y, parent_z);
+    for (const auto& e : tag_table) {
+        printf("%c, %s\n", e.first, e.second.c_str());
     }
 }
 

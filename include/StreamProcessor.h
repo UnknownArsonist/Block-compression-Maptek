@@ -31,10 +31,15 @@ public:
 
     // Function declarations
     vector<string> split(const string &s, char delimiter);
-    void process_slice();
-    void get_headerLine();
-    void get_tagTable();
-    void start_processing();
+    void processSlice();
+    void getHeaderLine(FILE *in);
+    void getCommaSeparatedValuesFromStream(FILE *in);
+    template <typename T, typename... Args>
+    void getCommaSeparatedValuesFromStream(FILE *in, T* value, Args... args);
+    void getLegendFromStream(FILE* in, std::unordered_map<char, std::string>* legend);
+    void startProcessing(FILE *in);
+
+    void printHeader();
 
     // Getters and Setters for dimensions
     vector<string> getSlice();

@@ -1,0 +1,12 @@
+32,8,1,8,8,1
+o,sea
+t,TAS
+
+oooooooooooooooooooooooooooooooo
+oooooooooooooooooottttoooooooooo
+ooooooooooooooootttttttooooooooo
+ooooooooooooooootttttooooooooooo
+ooooooooooooooooottttooooooooooo
+ooooooooooooooooootttttooooooooo
+oooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooo
