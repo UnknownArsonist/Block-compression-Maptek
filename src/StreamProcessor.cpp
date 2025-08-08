@@ -11,6 +11,7 @@ StreamProcessor::~StreamProcessor()
     // Destructor implementation
 }
 
+/*
 // Function to split a string by a delimiter
 vector<string> StreamProcessor::split(const string &s, char delimiter)
 {
@@ -23,6 +24,7 @@ vector<string> StreamProcessor::split(const string &s, char delimiter)
     }
     return tokens;
 }
+*/
 
 void StreamProcessor::startProcessing(FILE *in)
 {

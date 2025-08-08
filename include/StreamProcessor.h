@@ -5,11 +5,11 @@ class StreamProcessor
 {
 private:
     // Vectors to hold dimensions and tokens
-    vector<string> dims;
+    //vector<string> dims;
 
     // Header line and other variables
-    string header_line;
-    vector<string> slice;
+    //string header_line;
+    //vector<string> slice;
 
     // Dimensions of the 3D block
     int x_count;
@@ -30,7 +30,6 @@ public:
     ~StreamProcessor();
 
     // Function declarations
-    vector<string> split(const string &s, char delimiter);
     void processSlice();
     void getHeaderLine(FILE *in);
     void getCommaSeparatedValuesFromStream(FILE *in);
