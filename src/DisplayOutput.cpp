@@ -8,7 +8,6 @@ DisplayOutput::DisplayOutput(StreamProcessor &processor)
     parent_x = processor.getParentX();
     parent_y = processor.getParentY();
     parent_z = processor.getParentZ();
-    slice = processor.getSlice();
     tag_table = processor.getTagTable();
 }
 
