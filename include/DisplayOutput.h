@@ -2,11 +2,11 @@
 #include "header.h"
 #include "StreamProcessor.h"
 
-class DisplayOutput : public StreamProcessor
+class DisplayOutput
 {
 private:
-    vector<string> slice;
-    unordered_map<char, string> tag_table;
+    std::vector<std::string> slice;
+    std::unordered_map<char, std::string> tag_table;
     int count_x;
     int count_y;
     int count_z;

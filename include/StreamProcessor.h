@@ -25,7 +25,7 @@ private:
     FILE *output_stream;
 
     // Tag table to map characters to strings
-    unordered_map<char, string> tag_table;
+    std::unordered_map<char, std::string> tag_table;
 
 public:
     // Constructor and Destructor
@@ -35,8 +35,6 @@ public:
 
     // Function declarations
     void processStream();
-    void parentBlock(vector<vector<vector<char>>> *block);
-    void processParentBlock(vector<vector<vector<char>>> *block, int count, int index_x, int index_z);
 
     void getHeaderLine();
     void getCommaSeparatedValuesFromStream();
@@ -48,7 +46,7 @@ public:
     void printHeader();
 
     // Getters and Setters for dimensions
-    unordered_map<char, string> getTagTable();
+    std::unordered_map<char, std::string> getTagTable();
     int getXCount();
     int getYCount();
     int getZCount();
