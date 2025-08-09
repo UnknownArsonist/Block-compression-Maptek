@@ -1,7 +1,12 @@
 #include "StreamProcessor.h"
 
 // Constructor and Destructor
-StreamProcessor::StreamProcessor(/* args */)
+StreamProcessor::StreamProcessor(FILE *in)
+{
+    input_stream = in;
+}
+
+StreamProcessor::StreamProcessor() : StreamProcessor(stdin)
 {
 }
 
@@ -10,25 +15,25 @@ StreamProcessor::~StreamProcessor()
     // Destructor implementation
 }
 
-void StreamProcessor::startProcessing(FILE *in)
+void StreamProcessor::startProcessing()
 {
-    getHeaderLine(in);
-    processStream(in);
+    getHeaderLine();
+    processStream();
 }
 
-void StreamProcessor::getHeaderLine(FILE *in)
+void StreamProcessor::getHeaderLine()
 {
-    getCommaSeparatedValuesFromStream(in, &x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z);
-    getLegendFromStream(in, &tag_table);
+    getCommaSeparatedValuesFromStream(&x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z);
+    getLegendFromStream(&tag_table);
 }
 
-void StreamProcessor::getCommaSeparatedValuesFromStream(FILE *in) {}
+void StreamProcessor::getCommaSeparatedValuesFromStream() {}
 template <typename T, typename... Args>
-void StreamProcessor::getCommaSeparatedValuesFromStream(FILE *in, T *value, Args... args)
+void StreamProcessor::getCommaSeparatedValuesFromStream(T *value, Args... args)
 {
     char c;
     *value = 0;
-    while ((c = getc(in)) != EOF)
+    while ((c = getc(input_stream)) != EOF)
     {
         if (c == ',' || c == '\n')
         {
@@ -40,17 +45,17 @@ void StreamProcessor::getCommaSeparatedValuesFromStream(FILE *in, T *value, Args
             *value += (int)c - '0';
         }
     }
-    getCommaSeparatedValuesFromStream(in, args...);
+    getCommaSeparatedValuesFromStream(args...);
 }
 
-void StreamProcessor::getLegendFromStream(FILE *in, std::unordered_map<char, std::string> *legend)
+void StreamProcessor::getLegendFromStream(std::unordered_map<char, std::string> *legend)
 {
     char c;
     char key = 0;
     std::string value = "";
     int v = 0;
     int n = 0;
-    while ((c = getc(in)) != EOF)
+    while ((c = getc(input_stream)) != EOF)
     {
         if (c == ',')
         {
@@ -83,7 +88,7 @@ void StreamProcessor::getLegendFromStream(FILE *in, std::unordered_map<char, std
 }
 
 // Function to process the slice of 3D block data
-void StreamProcessor::processStream(FILE *in)
+void StreamProcessor::processStream()
 {
     int num_parent_blocks = (x_count / parent_x) * (y_count / parent_y);
     char parent_blocks[num_parent_blocks][parent_x][parent_y][parent_z];
@@ -94,7 +99,7 @@ void StreamProcessor::processStream(FILE *in)
     int z = 0;
     char ch;
 
-    while ((ch = getc(in)) != EOF) {
+    while ((ch = getc(input_stream)) != EOF) {
         int current_parent_block = (x / parent_x) + (x_count / parent_x) * (y / parent_y);
         if (ch == '\n') {
             x = 0;

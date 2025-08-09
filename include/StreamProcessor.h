@@ -21,25 +21,29 @@ private:
     int parent_y;
     int parent_z;
 
+    FILE *input_stream;
+    FILE *output_stream;
+
     // Tag table to map characters to strings
     unordered_map<char, string> tag_table;
 
 public:
     // Constructor and Destructor
-    StreamProcessor(/* args */);
+    StreamProcessor();
+    StreamProcessor(FILE *in);
     ~StreamProcessor();
 
     // Function declarations
-    void processStream(FILE *in);
+    void processStream();
     void parentBlock(vector<vector<vector<char>>> *block);
     void processParentBlock(vector<vector<vector<char>>> *block, int count, int index_x, int index_z);
 
-    void getHeaderLine(FILE *in);
-    void getCommaSeparatedValuesFromStream(FILE *in);
+    void getHeaderLine();
+    void getCommaSeparatedValuesFromStream();
     template <typename T, typename... Args>
-    void getCommaSeparatedValuesFromStream(FILE *in, T *value, Args... args);
-    void getLegendFromStream(FILE *in, std::unordered_map<char, std::string> *legend);
-    void startProcessing(FILE *in);
+    void getCommaSeparatedValuesFromStream(T *value, Args... args);
+    void getLegendFromStream(std::unordered_map<char, std::string> *legend);
+    void startProcessing();
 
     void printHeader();
 
