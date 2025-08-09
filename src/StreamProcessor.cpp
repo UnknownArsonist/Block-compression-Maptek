@@ -3,9 +3,6 @@
 // Constructor and Destructor
 StreamProcessor::StreamProcessor(/* args */)
 {
-    // Constructor implementation
-    count = 0;
-    index_x = 0;
 }
 
 StreamProcessor::~StreamProcessor()
@@ -31,6 +28,7 @@ vector<string> StreamProcessor::split(const string &s, char delimiter)
 void StreamProcessor::startProcessing(FILE *in)
 {
     getHeaderLine(in);
+    processStream(in);
 }
 
 /*
@@ -54,7 +52,6 @@ void StreamProcessor::getHeaderLine(FILE *in)
 {
     getCommaSeparatedValuesFromStream(in, &x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z);
     getLegendFromStream(in, &tag_table);
-    processSlice(in);
 }
 
 void StreamProcessor::getCommaSeparatedValuesFromStream(FILE *in) {}
@@ -134,50 +131,68 @@ void StreamProcessor::getLegendFromStream(FILE *in, std::unordered_map<char, std
 }
 
 // Function to process the slice of 3D block data
-void StreamProcessor::processSlice(FILE *in)
+void StreamProcessor::processStream(FILE *in)
 {
-    // resizing the 3D block data structure
-    c.resize(z_count, vector<vector<char>>(y_count, vector<char>(x_count)));
-    // Main Block : z-depth
-    for (int z = 0; z < z_count; z++)
-    {
-        // Main Block : y-height
-        for (int y = 0; y < y_count; y++)
-        {
-            // Main Block : x-width
-            for (int x = 0; x < x_count; x++)
-            {
-                int ch;
-                do
-                {
-                    ch = getc(in);
-                } while (isspace(ch) && ch != EOF);
+    int num_parent_blocks = (x_count / parent_x) * (y_count / parent_y);
+    char parent_blocks[num_parent_blocks][parent_x][parent_y][parent_z];
 
-                c[z][y][x] = (char)ch;
+    int n = 0;
+    int x = 0;
+    int y = 0;
+    int z = 0;
+    char ch;
+
+    while ((ch = getc(in)) != EOF) {
+        int current_parent_block = (x / parent_x) + (x_count / parent_x) * (y / parent_y);
+        if (ch == '\n') {
+            x = 0;
+            y++;
+            n++;
+            if (n > 1) {
+                y = 0;
+                z++;
             }
+        } else {
+            int parent_relative_x = x % parent_x;
+            int parent_relative_y = y % parent_y;
+            //printf("%d, %d, %d, %d: %c\n", current_parent_block, parent_relative_x, parent_relative_y, z, ch);
+
+            parent_blocks[current_parent_block][parent_relative_x][parent_relative_y][z] = ch;
+            x++;
+            n = 0;
         }
     }
-    // Store the 3D block in a member variable
-    ptr_c = &c;
-    parentBlock(ptr_c);
+
+    /*
+    printf("\nPrint Our Parent_block Structure\n\n");
+
+    for (int pb = 0; pb < num_parent_blocks; pb++) {
+        printf("Parent Block %d\n", pb);
+        for (int z = 0; z < parent_z; z++) {
+            for (int y = 0; y < parent_y; y++) {
+                for (int x = 0; x < parent_x; x++) {
+                    //printf("%d, %d, %d, %d: %c\n", pb, x, y, z, parent_blocks[pb][x][y][z]);
+                    printf("%c", parent_blocks[pb][x][y][z]);
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+    }
+    */
 }
 
+/*
 // Parent Block function to set the pointer to the 3D block data
 void StreamProcessor::parentBlock(vector<vector<vector<char>>> *block)
 {
     int num_parent_blocks_x = (x_count / parent_x);
     // 4D block to hold the parent block data
-    parent_block.resize(num_parent_blocks_x * z_count,
-                        vector<vector<vector<char>>>(
-                            parent_z,
-                            vector<vector<char>>(
-                                parent_y,
-                                vector<char>(parent_x))));
+    parent_block.resize(num_parent_blocks_x * z_count, vector<vector<vector<char>>>(parent_z, vector<vector<char>>(parent_y, vector<char>(parent_x))));
 
     // cout << x_count / parent_x;
     while (index_z < z_count)
     {
-        /* code */
         count = 0;
         index_x = 0;
 
@@ -215,6 +230,7 @@ void StreamProcessor::processParentBlock(vector<vector<vector<char>>> *block, in
         }
     }
 }
+*/
 
 // print the header information and the 3D block data
 void StreamProcessor::printHeader()
@@ -224,56 +240,6 @@ void StreamProcessor::printHeader()
     for (const auto &e : tag_table)
     {
         printf("%c, %s\n", e.first, e.second.c_str());
-    }
-
-    // Print the 3D block data
-    // Block z-depth
-    for (int i = 0; i < z_count; i++)
-    {
-        cout << "Slice " << i << ":\n";
-        for (int j = 0; j < y_count; j++)
-        {
-            for (int k = 0; k < x_count; k++)
-            {
-                cout << c[i][j][k];
-            }
-            cout << '\n';
-        }
-        cout << '\n';
-    }
-
-    // parent block data
-    /*
-    for (int i = 0; i < parent_z; i++)
-    {
-        cout << "Parent Slice " << i << ":\n";
-        for (int j = 0; j < parent_y; j++)
-        {
-            for (int k = 0; k < parent_x; k++)
-            {
-                cout << parent_block[i][j][k];
-            }
-            cout << '\n';
-        }
-        cout << '\n';
-    }
-    */
-    for (size_t block_i = 0; block_i < parent_block.size(); ++block_i)
-    {
-        std::cout << "Parent Block " << block_i << ":\n";
-        for (int z = 0; z < parent_z; ++z)
-        {
-            std::cout << "Slice " << z << ":\n";
-            for (int y = 0; y < parent_y; ++y)
-            {
-                for (int x = 0; x < parent_x; ++x)
-                {
-                    std::cout << parent_block[block_i][z][y][x];
-                }
-                std::cout << '\n';
-            }
-            std::cout << '\n';
-        }
     }
 }
 

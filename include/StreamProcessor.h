@@ -24,23 +24,13 @@ private:
     // Tag table to map characters to strings
     unordered_map<char, string> tag_table;
 
-    // main block to hold the 3D block data
-    vector<vector<vector<char>>> c;
-    vector<vector<vector<char>>> *ptr_c = nullptr; // Pointer to the 3D block data
-
-    // parent block to hold the 3D block data
-    vector<vector<vector<vector<char>>>> parent_block;
-    int count;
-    int index_x;
-    int index_z;
-
 public:
     // Constructor and Destructor
     StreamProcessor(/* args */);
     ~StreamProcessor();
 
     // Function declarations
-    void processSlice(FILE *in);
+    void processStream(FILE *in);
     void parentBlock(vector<vector<vector<char>>> *block);
     void processParentBlock(vector<vector<vector<char>>> *block, int count, int index_x, int index_z);
 
