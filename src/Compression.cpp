@@ -7,3 +7,5 @@ Compression::Compression() {
 Compression::~Compression() {}
 
 void Compression::compressParentBlock() {}
+
+void Compression::compressStream() {}

@@ -9,5 +9,5 @@ class Compression {
         ~Compression();
 
         void compressParentBlock();
-
+        void compressStream();
 };
