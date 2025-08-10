@@ -10,6 +10,7 @@ class StreamBuffer {
         std::mutex mutex;
     public:
         StreamBuffer(int buffer_size);
+        StreamBuffer();
         ~StreamBuffer();
         int read(void *buf, int num_bytes);
         int write(void *buf, int num_bytes);

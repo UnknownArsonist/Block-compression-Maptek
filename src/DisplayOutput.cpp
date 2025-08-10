@@ -1,5 +1,7 @@
 #include "DisplayOutput.h"
 
+DisplayOutput::DisplayOutput(){}
+
 DisplayOutput::DisplayOutput(InputStreamReader &processor)
 {
     count_x = processor.getXCount();

@@ -1,7 +1,4 @@
-#include "InputStreamReader.h"
-#include "Compression.h"
-#include "StreamBuffer.h"
-#include "DisplayOutput.h"
+#include "StreamProcessor.h"
 
 
 /* NOTES:
@@ -10,15 +7,6 @@
 
 int main()
 {
-    InputStreamReader processor;
-    Compression compressor;
-    processor.getHeaderLine();
-    //processor.printHeader();
-
-    std::thread inputStreamReaderThread(&InputStreamReader::processStream, &processor);
-    std::thread compressorThread(&Compression::compressStream, &compressor);
-
-    inputStreamReaderThread.join();
-    compressorThread.join();
+    StreamProcessor processor;
     return 0;
 }

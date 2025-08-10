@@ -1,12 +1,12 @@
 #pragma once
 #include "header.h"
 
-class Compression {
+class Compressor {
     private:
         FILE *in;
     public:
-        Compression();
-        ~Compression();
+        Compressor();
+        ~Compressor();
 
         void compressParentBlock();
         void compressStream();

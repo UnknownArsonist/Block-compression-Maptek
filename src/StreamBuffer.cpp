@@ -8,6 +8,10 @@ StreamBuffer::StreamBuffer(int buffer_size) {
     read_ptr = buffer;
 }
 
+StreamBuffer::StreamBuffer() {
+    size_stored = 0;
+}
+
 StreamBuffer::~StreamBuffer() {
     free(buffer);
 }

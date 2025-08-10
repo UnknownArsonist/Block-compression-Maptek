@@ -15,6 +15,7 @@ private:
     int parent_z;
 
 public:
+    DisplayOutput();
     DisplayOutput(InputStreamReader &processor);
     void display_slice();
     void load_processor(InputStreamReader &processor);
