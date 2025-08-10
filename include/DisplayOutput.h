@@ -1,6 +1,6 @@
 #pragma once
 #include "header.h"
-#include "StreamProcessor.h"
+#include "InputStreamReader.h"
 
 class DisplayOutput
 {
@@ -15,9 +15,9 @@ private:
     int parent_z;
 
 public:
-    DisplayOutput(StreamProcessor &processor);
+    DisplayOutput(InputStreamReader &processor);
     void display_slice();
-    void load_processor(StreamProcessor &processor);
+    void load_processor(InputStreamReader &processor);
 
     ~DisplayOutput();
 };

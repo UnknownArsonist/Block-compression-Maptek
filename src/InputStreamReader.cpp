@@ -1,35 +1,35 @@
-#include "StreamProcessor.h"
+#include "InputStreamReader.h"
 
 // Constructor and Destructor
-StreamProcessor::StreamProcessor(FILE *in)
+InputStreamReader::InputStreamReader(FILE *in)
 {
     input_stream = in;
 }
 
-StreamProcessor::StreamProcessor() : StreamProcessor(stdin)
+InputStreamReader::InputStreamReader() : InputStreamReader(stdin)
 {
 }
 
-StreamProcessor::~StreamProcessor()
+InputStreamReader::~InputStreamReader()
 {
     // Destructor implementation
 }
 
-void StreamProcessor::startProcessing()
+void InputStreamReader::startProcessing()
 {
     getHeaderLine();
     processStream();
 }
 
-void StreamProcessor::getHeaderLine()
+void InputStreamReader::getHeaderLine()
 {
     getCommaSeparatedValuesFromStream(&x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z);
     getLegendFromStream(&tag_table);
 }
 
-void StreamProcessor::getCommaSeparatedValuesFromStream() {}
+void InputStreamReader::getCommaSeparatedValuesFromStream() {}
 template <typename T, typename... Args>
-void StreamProcessor::getCommaSeparatedValuesFromStream(T *value, Args... args)
+void InputStreamReader::getCommaSeparatedValuesFromStream(T *value, Args... args)
 {
     char c;
     *value = 0;
@@ -48,7 +48,7 @@ void StreamProcessor::getCommaSeparatedValuesFromStream(T *value, Args... args)
     getCommaSeparatedValuesFromStream(args...);
 }
 
-void StreamProcessor::getLegendFromStream(std::unordered_map<char, std::string> *legend)
+void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string> *legend)
 {
     char c;
     char key = 0;
@@ -88,7 +88,7 @@ void StreamProcessor::getLegendFromStream(std::unordered_map<char, std::string> 
 }
 
 // Function to process the slice of 3D block data
-void StreamProcessor::processStream()
+void InputStreamReader::processStream()
 {
     int num_parent_blocks = (x_count / parent_x) * (y_count / parent_y);
     char parent_blocks[num_parent_blocks][parent_x][parent_y][parent_z];
@@ -140,7 +140,7 @@ void StreamProcessor::processStream()
 }
 
 // print the header information and the 3D block data
-void StreamProcessor::printHeader()
+void InputStreamReader::printHeader()
 {
     // print the header information
     printf("%d, %d, %d, %d, %d, %d\n", x_count, y_count, z_count, parent_x, parent_y, parent_z);
@@ -151,11 +151,11 @@ void StreamProcessor::printHeader()
 }
 
 // Getters for dimensions and tag table
-// vector<string> StreamProcessor::getSlice() { return slice; }
-unordered_map<char, string> StreamProcessor::getTagTable() { return tag_table; }
-int StreamProcessor::getXCount() { return x_count; }
-int StreamProcessor::getYCount() { return y_count; }
-int StreamProcessor::getZCount() { return z_count; }
-int StreamProcessor::getParentX() { return parent_x; }
-int StreamProcessor::getParentY() { return parent_y; }
-int StreamProcessor::getParentZ() { return parent_z; }
+// vector<string> InputStreamReader::getSlice() { return slice; }
+std::unordered_map<char, std::string> InputStreamReader::getTagTable() { return tag_table; }
+int InputStreamReader::getXCount() { return x_count; }
+int InputStreamReader::getYCount() { return y_count; }
+int InputStreamReader::getZCount() { return z_count; }
+int InputStreamReader::getParentX() { return parent_x; }
+int InputStreamReader::getParentY() { return parent_y; }
+int InputStreamReader::getParentZ() { return parent_z; }

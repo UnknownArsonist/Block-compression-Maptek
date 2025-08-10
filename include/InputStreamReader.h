@@ -1,7 +1,7 @@
 #pragma once
 #include "header.h"
 
-class StreamProcessor
+class InputStreamReader
 {
 private:
     // Vectors to hold dimensions and tokens
@@ -29,9 +29,9 @@ private:
 
 public:
     // Constructor and Destructor
-    StreamProcessor();
-    StreamProcessor(FILE *in);
-    ~StreamProcessor();
+    InputStreamReader();
+    InputStreamReader(FILE *in);
+    ~InputStreamReader();
 
     // Function declarations
     void processStream();

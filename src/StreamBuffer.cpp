@@ -13,6 +13,7 @@ StreamBuffer::~StreamBuffer() {
 }
 
 int StreamBuffer::read(void *buf, int num_bytes) {
+    mutex.lock();
     if (size_stored < num_bytes) {
         return -1;
     }
@@ -31,10 +32,12 @@ int StreamBuffer::read(void *buf, int num_bytes) {
 
     memcpy(buf, temp_read_ptr, temp_num_bytes);
     size_stored -= num_bytes;
+    mutex.unlock();
     return num_bytes;
 }
 
 int StreamBuffer::write(void *buf, int num_bytes) {
+    mutex.lock();
     if (size_stored + num_bytes > buf_size) {
         return -1;
     }
@@ -53,6 +56,7 @@ int StreamBuffer::write(void *buf, int num_bytes) {
 
     memcpy(temp_write_ptr, buf, temp_num_bytes);
     size_stored += num_bytes;
+    mutex.unlock();
     return num_bytes;
 }
 

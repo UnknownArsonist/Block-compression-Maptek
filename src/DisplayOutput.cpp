@@ -1,6 +1,6 @@
 #include "DisplayOutput.h"
 
-DisplayOutput::DisplayOutput(StreamProcessor &processor)
+DisplayOutput::DisplayOutput(InputStreamReader &processor)
 {
     count_x = processor.getXCount();
     count_y = processor.getYCount();

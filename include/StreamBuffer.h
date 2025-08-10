@@ -7,6 +7,7 @@ class StreamBuffer {
         char *read_ptr;
         int buf_size;
         int size_stored;
+        std::mutex mutex;
     public:
         StreamBuffer(int buffer_size);
         ~StreamBuffer();
