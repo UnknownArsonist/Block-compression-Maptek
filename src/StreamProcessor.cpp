@@ -7,3 +7,7 @@ StreamProcessor::StreamProcessor() {
 StreamProcessor::~StreamProcessor() {
 
 }
+
+void StreamProcessor::start() {
+    
+}

@@ -19,4 +19,6 @@ class StreamProcessor {
     public:
         StreamProcessor();
         ~StreamProcessor();
+
+        void start();
 };

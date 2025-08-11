@@ -1,5 +1,6 @@
 #pragma once
 #include "header.h"
+#include "StreamBuffer.h"
 
 class InputStreamReader
 {
@@ -22,7 +23,7 @@ private:
     int parent_z;
 
     FILE *input_stream;
-    FILE *output_stream;
+    StreamBuffer *output_stream;
 
     // Tag table to map characters to strings
     std::unordered_map<char, std::string> tag_table;
