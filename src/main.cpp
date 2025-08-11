@@ -1,5 +1,4 @@
 #include "StreamProcessor.h"
-#include "DisplayOutput.h"
 
 
 /* NOTES:
@@ -9,9 +8,5 @@
 int main()
 {
     StreamProcessor processor;
-    FILE *input_file = fopen("test_input.txt", "r");
-    processor.startProcessing(input_file);
-    fclose(input_file);
-    processor.printHeader();
     return 0;
 }
