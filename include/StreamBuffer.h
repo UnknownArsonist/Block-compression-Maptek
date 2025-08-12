@@ -10,9 +10,9 @@ class StreamBuffer {
         int size_stored;
         std::mutex mutex;
     public:
-        StreamBuffer(int buffer_size);
         StreamBuffer();
         ~StreamBuffer();
+        void setSize(int buffer_size);
         int pop(void *buf);
         int push(void *buf);
         void printBuffer();

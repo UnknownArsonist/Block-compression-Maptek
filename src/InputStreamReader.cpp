@@ -105,7 +105,10 @@ void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string
 void InputStreamReader::processStream()
 {
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
-    char parent_blocks[num_parent_blocks][*parent_x][*parent_y][*parent_z];
+    char *parent_blocks[num_parent_blocks];
+    for (int i = 0; i < num_parent_blocks; i++) {
+        parent_blocks[i] = NULL;
+    }
 
     int n = 0;
     int x = 0;
@@ -124,12 +127,24 @@ void InputStreamReader::processStream()
                 z++;
             }
         } else {
+            //printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
+            if (parent_blocks[current_parent_block] == NULL) {
+                parent_blocks[current_parent_block] = (char*)malloc(*parent_x * *parent_y * *parent_z * sizeof(char));
+            }
             int parent_relative_x = x % *parent_x;
             int parent_relative_y = y % *parent_y;
             int parent_relative_z = z % *parent_z;
             //printf("%d, %d, %d, %d: %c\n", current_parent_block, parent_relative_x, parent_relative_y, z, ch);
 
-            parent_blocks[current_parent_block][parent_relative_x][parent_relative_y][parent_relative_z] = ch;
+            parent_blocks[current_parent_block][(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
+            if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
+                //printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
+                int c;
+                do {
+                    c = output_stream->push(parent_blocks[current_parent_block]);
+                } while (c == -1);
+                output_stream->printBuffer();
+            }
             x++;
             n = 0;
         }

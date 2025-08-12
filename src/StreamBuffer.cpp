@@ -1,18 +1,18 @@
 #include "StreamBuffer.h"
 
-StreamBuffer::StreamBuffer(int buffer_size) {
-    buffer = (void**)malloc(buffer_size * sizeof(void*));
-    buf_size = buffer_size;
-    size_stored = 0;
-    write_ptr = buffer;
-    read_ptr = buffer;
-}
-
 StreamBuffer::StreamBuffer() {
     size_stored = 0;
 }
 
 StreamBuffer::~StreamBuffer() {
+}
+
+void StreamBuffer::setSize(int buffer_size) {
+    buffer = (void**)malloc(buffer_size * sizeof(void*));
+    buf_size = buffer_size;
+    size_stored = 0;
+    write_ptr = buffer;
+    read_ptr = buffer;
 }
 
 int StreamBuffer::pop(void *buf) {
@@ -21,8 +21,8 @@ int StreamBuffer::pop(void *buf) {
         return -1;
     }
     
-    buf = read_ptr;
-    read_ptr -= sizeof(void*);
+    buf = *read_ptr;
+    read_ptr -= 1;
     if (read_ptr < buffer) {
         read_ptr = &buffer[buf_size-1];
     }
@@ -62,8 +62,10 @@ int StreamBuffer::push(void *buf) {
         return -1;
     }
 
-    buf = write_ptr;
-    write_ptr += sizeof(void*);
+    //printf("%p\n", buf);
+
+    *write_ptr = buf;
+    write_ptr += 1;
     if (write_ptr > &buffer[buf_size-1]) {
         write_ptr = buffer;
     }

@@ -14,6 +14,8 @@ void StreamProcessor::setup() {
     inputStreamReader.getHeader();
     compressor.passValues(&parent_x, &parent_y, &parent_z);
     compressor.passBuffers(&inputToCompressorBuffer, &compressorToOutputBuffer);
+    inputToCompressorBuffer.setSize(10);
+    compressorToOutputBuffer.setSize(10);
 }
 
 void StreamProcessor::start() {
