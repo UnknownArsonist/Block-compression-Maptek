@@ -4,6 +4,7 @@ DisplayOutput::DisplayOutput(){}
 
 DisplayOutput::DisplayOutput(InputStreamReader &processor)
 {
+    /*
     count_x = processor.getXCount();
     count_y = processor.getYCount();
     count_z = processor.getZCount();
@@ -11,10 +12,12 @@ DisplayOutput::DisplayOutput(InputStreamReader &processor)
     parent_y = processor.getParentY();
     parent_z = processor.getParentZ();
     tag_table = processor.getTagTable();
+    */
 }
 
 void DisplayOutput::display_slice()
 {
+    /*
     std::vector<std::string> slice;
     std::string line;
     for (int z = 0; z < count_z; z++)
@@ -35,7 +38,7 @@ void DisplayOutput::display_slice()
         if (z < count_z - 1)
             getline(std::cin, line); // skip blank line
     }
-
+    */
     /*
     for (int z = 0; z < count_z; ++z)
     {

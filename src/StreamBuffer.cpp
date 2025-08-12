@@ -1,7 +1,7 @@
 #include "StreamBuffer.h"
 
 StreamBuffer::StreamBuffer(int buffer_size) {
-    buffer = (char*)malloc(buffer_size * sizeof(char));
+    buffer = (void**)malloc(buffer_size * sizeof(void*));
     buf_size = buffer_size;
     size_stored = 0;
     write_ptr = buffer;
@@ -13,9 +13,24 @@ StreamBuffer::StreamBuffer() {
 }
 
 StreamBuffer::~StreamBuffer() {
-    free(buffer);
 }
 
+int StreamBuffer::pop(void *buf) {
+    mutex.lock();
+    if (size_stored <= 0) {
+        return -1;
+    }
+    
+    buf = read_ptr;
+    read_ptr -= sizeof(void*);
+    if (read_ptr < buffer) {
+        read_ptr = &buffer[buf_size-1];
+    }
+    size_stored--;
+    mutex.unlock();
+    return 1;
+}
+/*
 int StreamBuffer::read(void *buf, int num_bytes) {
     mutex.lock();
     if (size_stored < num_bytes) {
@@ -39,35 +54,28 @@ int StreamBuffer::read(void *buf, int num_bytes) {
     mutex.unlock();
     return num_bytes;
 }
+*/
 
-int StreamBuffer::write(void *buf, int num_bytes) {
+int StreamBuffer::push(void *buf) {
     mutex.lock();
-    if (size_stored + num_bytes > buf_size) {
+    if (size_stored >= buf_size) {
         return -1;
     }
 
-    char *temp_write_ptr = write_ptr;
-    int temp_num_bytes = num_bytes;
-    int split = (write_ptr + num_bytes) - (buffer + buf_size);
-
-    if (split > 0) {
-        temp_num_bytes -= split;
-        write_ptr = buffer + split;
-        memcpy(buffer, ((char*)buf) + temp_num_bytes, split);
-    } else {
-        write_ptr = write_ptr + temp_num_bytes;
+    buf = write_ptr;
+    write_ptr += sizeof(void*);
+    if (write_ptr > &buffer[buf_size-1]) {
+        write_ptr = buffer;
     }
-
-    memcpy(temp_write_ptr, buf, temp_num_bytes);
-    size_stored += num_bytes;
+    size_stored++;
     mutex.unlock();
-    return num_bytes;
+    return 1;
 }
 
 void StreamBuffer::printBuffer() {
     printf("[");
     for (int i = 0; i < buf_size; i++) {
-        printf("%c", buffer[i]);
+        printf("%p", buffer[i]);
         if (i != buf_size - 1)
             printf(", ");
     }
