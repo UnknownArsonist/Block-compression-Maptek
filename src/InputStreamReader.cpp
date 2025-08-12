@@ -141,14 +141,19 @@ void InputStreamReader::processStream()
                 //printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
                 int c;
                 do {
-                    c = output_stream->push(parent_blocks[current_parent_block]);
+                    c = output_stream->push((void**)&parent_blocks[current_parent_block]);
                 } while (c == -1);
-                output_stream->printBuffer();
+                //output_stream->printBuffer();
             }
             x++;
             n = 0;
         }
     }
+    int c;
+    char *null_ptr = NULL;
+    do {
+        c = output_stream->push((void**)&null_ptr);
+    } while (c == -1);
 
     /*
     printf("\nPrint Our Parent_block Structure\n\n");

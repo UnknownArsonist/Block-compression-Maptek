@@ -10,5 +10,6 @@ int main()
     StreamProcessor processor;
     processor.start();
     processor.getInputStreamReader()->printHeader();
+    processor.getCompressor()->compressStream();
     return 0;
 }
