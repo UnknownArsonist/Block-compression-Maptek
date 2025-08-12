@@ -8,5 +8,7 @@
 int main()
 {
     StreamProcessor processor;
+    processor.start();
+    processor.getInputStreamReader()->printHeader();
     return 0;
 }
