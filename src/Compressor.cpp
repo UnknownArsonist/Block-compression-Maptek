@@ -131,58 +131,55 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
         oooooooo
         ssoooooo
    */
+
     while (z < parent_z)
     {
+        target = sub_blocks[z][y][x]; // Current char
 
-        while (z < parent_z)
+        bool neighbors_match = false;
+
+        // Check neighbors only if in bounds
+        bool has_right = (x + 1) < parent_x;
+        bool has_down = (y + 1) < parent_y;
+
+        if (has_right && has_down)
         {
-            target = sub_blocks[z][y][x]; // Current char
+            if (target == sub_blocks[z][y][x + 1] && target == sub_blocks[z][y + 1][x])
+                neighbors_match = true;
+        }
+        else if (!has_right && has_down) // right neighbor doesn't exist but down neighbor exists
+        {
+            if (target == sub_blocks[z][y + 1][x])
+                neighbors_match = true;
+        }
+        else if (has_right && !has_down) // down neighbor doesn't exist but right neighbor exists
+        {
+            if (target == sub_blocks[z][y][x + 1])
+                neighbors_match = true;
+        }
+        // If neither neighbor exists (bottom-right corner), no match
+        else if (!has_right && !has_down) // down neighbor doesn't exist but right neighbor exists
+        {
+            if (target == sub_blocks[z][parent_y - 1][parent_x - 1])
+                neighbors_match = true;
+        }
 
-            bool neighbors_match = false;
+        if (neighbors_match)
+        {
+            printf("Processing character '%c' at coordinates (%d, %d, %d)\n", target, z, y, x);
+        }
 
-            // Check neighbors only if in bounds
-            bool has_right = (x + 1) < parent_x;
-            bool has_down = (y + 1) < parent_y;
-
-            if (has_right && has_down)
+        // Increment coordinates properly
+        x++;
+        if (x == parent_x)
+        {
+            x = 0;
+            y++;
+            if (y == parent_y)
             {
-                if (target == sub_blocks[z][y][x + 1] && target == sub_blocks[z][y + 1][x])
-                    neighbors_match = true;
-            }
-            else if (!has_right && has_down) // right neighbor doesn't exist but down neighbor exists
-            {
-                if (target == sub_blocks[z][y + 1][x])
-                    neighbors_match = true;
-            }
-            else if (has_right && !has_down) // down neighbor doesn't exist but right neighbor exists
-            {
-                if (target == sub_blocks[z][y][x + 1])
-                    neighbors_match = true;
-            }
-            // If neither neighbor exists (bottom-right corner), no match
-            else if (!has_right && !has_down) // down neighbor doesn't exist but right neighbor exists
-            {
-                if (target == sub_blocks[z][parent_y - 1][parent_x - 1])
-                    neighbors_match = true;
-            }
-
-            if (neighbors_match)
-            {
-                printf("Processing character '%c' at coordinates (%d, %d, %d)\n", target, z, y, x);
-            }
-
-            // Increment coordinates properly
-            x++;
-            if (x == parent_x)
-            {
-                x = 0;
-                y++;
-                if (y == parent_y)
-                {
-                    y = 0;
-                    z++;
-                    printf("\n\n");
-                }
+                y = 0;
+                z++;
+                printf("\n\n");
             }
         }
     }
