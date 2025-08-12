@@ -13,7 +13,7 @@ class StreamBuffer {
         StreamBuffer();
         ~StreamBuffer();
         void setSize(int buffer_size);
-        int pop(void *buf);
-        int push(void *buf);
+        int pop(void **buf);
+        int push(void **buf);
         void printBuffer();
 };

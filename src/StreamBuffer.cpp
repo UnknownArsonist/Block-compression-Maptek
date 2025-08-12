@@ -15,16 +15,16 @@ void StreamBuffer::setSize(int buffer_size) {
     read_ptr = buffer;
 }
 
-int StreamBuffer::pop(void *buf) {
+int StreamBuffer::pop(void **buf) {
     mutex.lock();
     if (size_stored <= 0) {
         return -1;
     }
     
-    buf = *read_ptr;
-    read_ptr -= 1;
-    if (read_ptr < buffer) {
-        read_ptr = &buffer[buf_size-1];
+    *buf = *read_ptr;
+    read_ptr += 1;
+    if (read_ptr > &buffer[buf_size-1]) {
+        read_ptr = buffer;
     }
     size_stored--;
     mutex.unlock();
@@ -56,7 +56,7 @@ int StreamBuffer::read(void *buf, int num_bytes) {
 }
 */
 
-int StreamBuffer::push(void *buf) {
+int StreamBuffer::push(void **buf) {
     mutex.lock();
     if (size_stored >= buf_size) {
         return -1;
@@ -64,7 +64,7 @@ int StreamBuffer::push(void *buf) {
 
     //printf("%p\n", buf);
 
-    *write_ptr = buf;
+    *write_ptr = *buf;
     write_ptr += 1;
     if (write_ptr > &buffer[buf_size-1]) {
         write_ptr = buffer;
