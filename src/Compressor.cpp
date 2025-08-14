@@ -92,96 +92,134 @@ void Compressor::compressParentBlock()
         ss o o
         oooo
     */
-    processParentBlocks(parent_blocks[1]);
+    processParentBlocks(parent_blocks[0]);
     // printParentBlock(parent_blocks);
+}
+
+bool Compressor::isUniform(const std::vector<std::vector<char>> check_slice)
+{
+    char first = check_slice[0][0];
+    for (size_t y = 0; y < check_slice.size(); y++)
+    {
+        for (size_t x = 0; x < check_slice[y].size(); x++)
+        {
+            if (check_slice[y][x] != first)
+                return false;
+        }
+    }
+    return true;
 }
 
 void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<char>>> &sub_blocks)
 {
-    int x = 0;
-    int y = 0;
-    int z = 0;
-
-    int parent_x = 8;
-    int parent_y = 8;
-    int parent_z = 2;
-    char target;
-
-    // char target = sub_blocks[z][x][y]; // Assuming the first character is the target
-
     /*
-       === Block 0 ===
-        Slice 0:
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
+      === Block 0 ===
+       Slice 0:
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
 
-        Slice 1:
-        sooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        oooooooo
-        ssoooooo
-   */
-
+       Slice 1:
+       sooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       oooooooo
+       ssoooooo
+  */
+    int z = 0;
+    int parent_z = 2;
     while (z < parent_z)
     {
-        target = sub_blocks[z][y][x]; // Current char
-
-        bool neighbors_match = false;
-
-        // Check neighbors only if in bounds
-        bool has_right = (x + 1) < parent_x;
-        bool has_down = (y + 1) < parent_y;
-
-        if (has_right && has_down)
+        if (isUniform(sub_blocks[z]) == true)
         {
-            if (target == sub_blocks[z][y][x + 1] && target == sub_blocks[z][y + 1][x])
-                neighbors_match = true;
+            printf("0,0,0,%zu,%zu,%d,%c\n\n",
+                   sub_blocks[0][0].size(), // X size
+                   sub_blocks[0].size(),    // Y size
+                   z, sub_blocks[0][0][0]); // Z size
         }
-        else if (!has_right && has_down) // right neighbor doesn't exist but down neighbor exists
+        else
         {
-            if (target == sub_blocks[z][y + 1][x])
-                neighbors_match = true;
-        }
-        else if (has_right && !has_down) // down neighbor doesn't exist but right neighbor exists
-        {
-            if (target == sub_blocks[z][y][x + 1])
-                neighbors_match = true;
-        }
-        // If neither neighbor exists (bottom-right corner), no match
-        else if (!has_right && !has_down) // down neighbor doesn't exist but right neighbor exists
-        {
-            if (target == sub_blocks[z][parent_y - 1][parent_x - 1])
-                neighbors_match = true;
-        }
+            int parent_x = sub_blocks[0][0].size();
+            int parent_y = sub_blocks[0].size();
+            int parent_z = sub_blocks.size();
 
-        if (neighbors_match)
-        {
-            printf("Processing character '%c' at coordinates (%d, %d, %d)\n", target, z, y, x);
-        }
+            // marks visited cells
+            std::vector<std::vector<std::vector<bool>>> visited(
+                parent_z, std::vector<std::vector<bool>>(parent_y, std::vector<bool>(parent_x, false)));
 
-        // Increment coordinates properly
-        x++;
-        if (x == parent_x)
-        {
-            x = 0;
-            y++;
-            if (y == parent_y)
+            for (int y = 0; y < parent_y; y++)
             {
-                y = 0;
-                z++;
-                printf("\n\n");
+                for (int x = 0; x < parent_x; x++)
+                {
+                    if (visited[z][y][x])
+                        continue;
+
+                    char target = sub_blocks[z][y][x];
+
+                    // Determine max size in X
+                    int maxX = x;
+                    while (maxX < parent_x && sub_blocks[z][y][maxX] == target && !visited[z][y][maxX])
+                        maxX++;
+
+                    // Determine max size in Y
+                    int maxY = y;
+                    bool uniformY = true; // checks if character below the target is same or not
+                    while (maxY < parent_y && uniformY)
+                    {
+                        for (int xi = x; xi < maxX; xi++)
+                        {
+                            if (sub_blocks[z][maxY][xi] != target || visited[z][maxY][xi])
+                            {
+                                uniformY = false;
+                                break;
+                            }
+                        }
+                        if (uniformY)
+                            maxY++;
+                    }
+
+                    // Determine max size in Z
+                    int maxZ = z;
+                    bool uniformZ = true;
+                    while (maxZ < parent_z && uniformZ)
+                    {
+                        for (int yi = y; yi < maxY; yi++)
+                        {
+                            for (int xi = x; xi < maxX; xi++)
+                            {
+                                if (sub_blocks[maxZ][yi][xi] != target || visited[maxZ][yi][xi])
+                                {
+                                    uniformZ = false;
+                                    break;
+                                }
+                            }
+                            if (!uniformZ)
+                                break;
+                        }
+                        if (uniformZ)
+                            maxZ++;
+                    }
+
+                    // Mark all as visited
+                    for (int zz = z; zz < maxZ; zz++)
+                        for (int yy = y; yy < maxY; yy++)
+                            for (int xx = x; xx < maxX; xx++)
+                                visited[zz][yy][xx] = true;
+
+                    // Output the packed block
+                    printf("%d,%d,%d,%d,%d,%d,%c\n", x, y, z, maxX - x, maxY - y, maxZ - z, target);
+                }
             }
         }
+        z++;
     }
 }
 
