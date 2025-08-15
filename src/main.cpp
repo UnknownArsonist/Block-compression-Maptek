@@ -8,9 +8,9 @@ int main()
 {
     StreamProcessor processor;
     Compressor compressor;
-    // processor.start();
+    processor.start();
     // processor.getInputStreamReader()->printHeader();
     // processor.getCompressor()->compressStream();
-    compressor.compressParentBlock();
+    // compressor.compressParentBlock();
     return 0;
 }

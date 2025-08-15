@@ -9,6 +9,7 @@ private:
     int *parent_x;
     int *parent_y;
     int *parent_z;
+    std::unordered_map<char, std::string> *tagTable;
 
     StreamBuffer *input_stream;
     StreamBuffer *output_stream;
@@ -18,12 +19,11 @@ public:
     ~Compressor();
 
     // helper function
-    bool isUniform(const std::vector<std::vector<char>> check_slice);
 
     void compressParentBlock();
-    void processParentBlocks(const std::vector<std::vector<std::vector<char>>> &sub_blocks);
+    void processParentBlocks(ParentBlock *parent_block);
     void printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks);
     void compressStream();
-    void passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z);
+    void passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tagtable);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
 };

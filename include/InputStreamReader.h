@@ -44,7 +44,7 @@ public:
     template <typename T, typename... Args>
     void getCommaSeparatedValuesFromStream(T *value, Args... args);
     void getLegendFromStream(std::unordered_map<char, std::string> *legend);
-    void startProcessing();
+    // void startProcessing();
 
     void printHeader();
 };
