@@ -125,8 +125,6 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
        oooooooo
 
        Slice 1:
-        visited -> s o[7x7]
-        visited -> s o[7x7]
        sooooooo
        oooooooo
        oooooooo
@@ -135,16 +133,6 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
        oooooooo
        oooooooo
        ssoooooo
-
-       11112
-       11221
-       11111
-       11111
-
-       11112
-       11221
-       11111
-       11111
   */
     int z = 0;
     int parent_z = 2;
@@ -232,7 +220,6 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
             // x += 1; x = 1; x = 2
         }
         // y = 1
-
         z++;
     }
 }
