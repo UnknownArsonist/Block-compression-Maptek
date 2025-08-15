@@ -168,7 +168,6 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
                     continue;
 
                 char target = sub_blocks[z][y][x];
-                char target = sub_blocks[z][y][x];
 
                 // Determine max size in X
                 int maxX = x; // 0 1 7
