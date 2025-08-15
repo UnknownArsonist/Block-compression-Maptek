@@ -96,6 +96,7 @@ void Compressor::compressParentBlock()
     // printParentBlock(parent_blocks);
 }
 
+/*
 bool Compressor::isUniform(const std::vector<std::vector<char>> check_slice)
 {
     char first = check_slice[0][0];
@@ -109,6 +110,7 @@ bool Compressor::isUniform(const std::vector<std::vector<char>> check_slice)
     }
     return true;
 }
+*/
 
 void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<char>>> &sub_blocks)
 {
