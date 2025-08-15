@@ -126,6 +126,7 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
 
        Slice 1:
         visited -> s o[7x7]
+        visited -> s o[7x7]
        sooooooo
        oooooooo
        oooooooo
@@ -134,6 +135,11 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
        oooooooo
        oooooooo
        ssoooooo
+
+       11112
+       11221
+       11111
+       11111
 
        11112
        11221
@@ -279,32 +285,41 @@ void Compressor::compressStream()
         else
         {
             // else block is non-uniform, do compression
-        }
+            if (block == NULL)
+            {
+                // block == NULL means uniform block
+            }
+            else
+            {
+                // else block is non-uniform, do compression
+            }
 
-        /*
-        printf("Parent Block: %p\n", parent_block);
-        for (int z = 0; z < *parent_z; z++) {
-            for (int y = 0; y < *parent_y; y++) {
-                for (int x = 0; x < *parent_x; x++) {
-                    printf("%c", parent_block[(x * *parent_y * *parent_z) + (y * *parent_z) + z]);
+            /*
+            printf("Parent Block: %p\n", parent_block);
+            for (int z = 0; z < *parent_z; z++) {
+                for (int y = 0; y < *parent_y; y++) {
+                    for (int x = 0; x < *parent_x; x++) {
+                        printf("%c", parent_block[(x * *parent_y * *parent_z) + (y * *parent_z) + z]);
+                    }
+                    printf("\n");
                 }
                 printf("\n");
             }
-            printf("\n");
+            */
         }
-        */
-    } while (parent_block != NULL);
-}
+        while (parent_block != NULL)
+            ;
+    }
 
-void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z)
-{
-    parent_x = c_parent_x;
-    parent_y = c_parent_y;
-    parent_z = c_parent_z;
-}
+    void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z)
+    {
+        parent_x = c_parent_x;
+        parent_y = c_parent_y;
+        parent_z = c_parent_z;
+    }
 
-void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
-{
-    input_stream = c_input_stream;
-    output_stream = c_output_stream;
-}
+    void Compressor::passBuffers(StreamBuffer * c_input_stream, StreamBuffer * c_output_stream)
+    {
+        input_stream = c_input_stream;
+        output_stream = c_output_stream;
+    }
