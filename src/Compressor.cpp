@@ -125,6 +125,7 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
        oooooooo
 
        Slice 1:
+        visited -> s o[7x7]
        sooooooo
        oooooooo
        oooooooo
@@ -133,39 +134,50 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
        oooooooo
        oooooooo
        ssoooooo
+
+       11112
+       11221
+       11111
+       11111
   */
     int z = 0;
     int parent_z = 2;
     while (z < parent_z)
     {
+
         int parent_x = sub_blocks[0][0].size();
         int parent_y = sub_blocks[0].size();
         int parent_z = sub_blocks.size();
 
         // marks visited cells
-        std::vector<std::vector<std::vector<bool>>> visited(parent_z, std::vector<std::vector<bool>>(parent_y, std::vector<bool>(parent_x, false)));
+        std::vector<std::vector<std::vector<bool>>> visited(
+            parent_z, std::vector<std::vector<bool>>(parent_y, std::vector<bool>(parent_x, false)));
 
         for (int y = 0; y < parent_y; y++)
         {
             for (int x = 0; x < parent_x; x++)
             {
                 if (visited[z][y][x])
+                    // from x = 1 -> x = 7 && y = 0 -> y = 7 because these are already visited
                     continue;
 
                 char target = sub_blocks[z][y][x];
+                char target = sub_blocks[z][y][x];
 
                 // Determine max size in X
-                int maxX = x;
+                int maxX = x; // 0 1 7
                 while (maxX < parent_x && sub_blocks[z][y][maxX] == target && !visited[z][y][maxX])
-                    maxX++;
+                    maxX++; // 1 7
 
                 // Determine max size in Y
-                int maxY = y;
+                int maxY = y;         // 0
                 bool uniformY = true; // checks if character in the y direction whether the target is same or not
                 while (maxY < parent_y && uniformY)
                 {
+                    // x = 0 -> maxX = 1; 1 < 7
                     for (int xi = x; xi < maxX; xi++)
                     {
+                        // x1 = 1
                         if (sub_blocks[z][maxY][xi] != target || visited[z][maxY][xi])
                         {
                             uniformY = false;
@@ -179,10 +191,13 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
                 // Determine max size in Z
                 int maxZ = z;
                 bool uniformZ = true;
+                // checks the subblocks, are they uniform and did we alreadly visit them.
                 while (maxZ < parent_z && uniformZ)
                 {
+                    // y = 0 maxY = 1
                     for (int yi = y; yi < maxY; yi++)
                     {
+                        // x = 0 MaxX = 1
                         for (int xi = x; xi < maxX; xi++)
                         {
                             if (sub_blocks[maxZ][yi][xi] != target || visited[maxZ][yi][xi])
@@ -195,6 +210,7 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
                             break;
                     }
                     if (uniformZ)
+                        // maxZ = 2 /*breaks the loop
                         maxZ++;
                 }
 
@@ -202,12 +218,16 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
                 for (int zz = z; zz < maxZ; zz++)
                     for (int yy = y; yy < maxY; yy++)
                         for (int xx = x; xx < maxX; xx++)
+                            // storing the character into the visited array
                             visited[zz][yy][xx] = true;
 
                 // Output the packed block
                 printf("%d,%d,%d,%d,%d,%d,%c\n", x, y, z, maxX - x, maxY - y, maxZ - z, target);
             }
+            // x += 1; x = 1; x = 2
         }
+        // y = 1
+
         z++;
     }
 }
@@ -252,11 +272,13 @@ void Compressor::compressStream()
 
         char *block = parent_block->block;
 
-        if (block == NULL) {
-            //block == NULL means uniform block
-        } else {
-            //else block is non-uniform, do compression
-            
+        if (block == NULL)
+        {
+            // block == NULL means uniform block
+        }
+        else
+        {
+            // else block is non-uniform, do compression
         }
 
         /*
