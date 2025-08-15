@@ -104,12 +104,14 @@ void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string
 // Function to process the slice of 3D block data
 void InputStreamReader::processStream()
 {
-    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
-    char *parent_blocks[num_parent_blocks];
+    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y) * (*z_count / *parent_z);
+    ParentBlock *parent_blocks[num_parent_blocks];
+    bool uniform[num_parent_blocks];
     for (int i = 0; i < num_parent_blocks; i++) {
         parent_blocks[i] = NULL;
     }
 
+    char *null_ptr = NULL;
     int n = 0;
     int x = 0;
     int y = 0;
@@ -117,7 +119,8 @@ void InputStreamReader::processStream()
     char ch;
 
     while ((ch = getc(input_stream)) != EOF) {
-        int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y);
+        int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y) + (*x_count / *parent_x) * (*y_count / *parent_y) * (z / *parent_z);
+        //printf("[%d] %d, %d, %d, %c\n", current_parent_block, x, y, z, ch);
         if (ch == '\n') {
             x = 0;
             y++;
@@ -129,20 +132,33 @@ void InputStreamReader::processStream()
         } else {
             //printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
             if (parent_blocks[current_parent_block] == NULL) {
-                parent_blocks[current_parent_block] = (char*)malloc(*parent_x * *parent_y * *parent_z * sizeof(char));
+                parent_blocks[current_parent_block] = (ParentBlock*)malloc(sizeof(ParentBlock));
+                parent_blocks[current_parent_block]->block = (char*)malloc(*parent_x * *parent_y * *parent_z * sizeof(char));
+                parent_blocks[current_parent_block]->x = x;
+                parent_blocks[current_parent_block]->y = y;
+                parent_blocks[current_parent_block]->z = z;
+                uniform[current_parent_block] = true;
             }
             int parent_relative_x = x % *parent_x;
             int parent_relative_y = y % *parent_y;
             int parent_relative_z = z % *parent_z;
             //printf("%d, %d, %d, %d: %c\n", current_parent_block, parent_relative_x, parent_relative_y, z, ch);
 
-            parent_blocks[current_parent_block][(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
+            parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
+            if (ch != parent_blocks[current_parent_block]->block[0]) {
+                uniform[current_parent_block] = false;
+            }
             if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
                 //printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
+                if (uniform[current_parent_block]) {
+                    free(parent_blocks[current_parent_block]->block);
+                    parent_blocks[current_parent_block]->block = NULL;
+                }
                 int c;
                 do {
                     c = output_stream->push((void**)&parent_blocks[current_parent_block]);
                 } while (c == -1);
+                parent_blocks[current_parent_block] = NULL;
                 //output_stream->printBuffer();
             }
             x++;
@@ -150,7 +166,6 @@ void InputStreamReader::processStream()
         }
     }
     int c;
-    char *null_ptr = NULL;
     do {
         c = output_stream->push((void**)&null_ptr);
     } while (c == -1);

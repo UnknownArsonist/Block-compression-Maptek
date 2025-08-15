@@ -14,13 +14,15 @@ void StreamProcessor::setup() {
     inputStreamReader.getHeader();
     compressor.passValues(&parent_x, &parent_y, &parent_z);
     compressor.passBuffers(&inputToCompressorBuffer, &compressorToOutputBuffer);
-    inputToCompressorBuffer.setSize(10);
-    compressorToOutputBuffer.setSize(10);
+    inputToCompressorBuffer.setSize(64);
+    compressorToOutputBuffer.setSize(64);
 }
 
 void StreamProcessor::start() {
     setup();
+    inputStreamReader.printHeader();
     inputStreamReader.processStream();
+    compressor.compressStream();
 }
 
 InputStreamReader *StreamProcessor::getInputStreamReader() { return &inputStreamReader; }
