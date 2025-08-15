@@ -171,7 +171,7 @@ void Compressor::processParentBlocks(const std::vector<std::vector<std::vector<c
 
                     // Determine max size in Y
                     int maxY = y;
-                    bool uniformY = true; // checks if character below the target is same or not
+                    bool uniformY = true; // checks if character in the y direction whether the target is same or not
                     while (maxY < parent_y && uniformY)
                     {
                         for (int xi = x; xi < maxX; xi++)
@@ -249,7 +249,7 @@ void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std:
 void Compressor::compressStream()
 {
     int pop_check;
-    char *parent_block;
+    ParentBlock *parent_block;
     do
     {
         pop_check = -1;
@@ -260,7 +260,7 @@ void Compressor::compressStream()
 
         if (parent_block == NULL)
             break;
-
+        char *block = parent_block->block;
         // Do Stuff Here
 
         /*
