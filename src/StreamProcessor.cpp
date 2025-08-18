@@ -24,8 +24,10 @@ void StreamProcessor::setup()
 void StreamProcessor::start()
 {
     setup();
-    if (verbose)
+    if (verbose) {
         fprintf(stderr, "[SP] Setup Complete\n");
+        started = std::chrono::high_resolution_clock::now();
+    }
     //inputStreamReader.printHeader();
     inputStreamReaderThread = std::thread(&InputStreamReader::processStream, &inputStreamReader);
     compressorThread = std::thread(&Compressor::compressStream, &compressor);
@@ -34,8 +36,20 @@ void StreamProcessor::start()
 
 void StreamProcessor::end() {
     inputStreamReaderThread.join();
+    if (verbose) {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cerr << "InputStreamReader Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end-started).count() << std::endl;
+    }
     compressorThread.join();
+    if (verbose) {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cerr << "Compressor Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end-started).count() << std::endl;
+    }
     displayOutputThread.join();
+    if (verbose) {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cerr << "Output Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end-started).count() << std::endl;
+    }
 }
 
 void StreamProcessor::setVerbose(bool c_v) {

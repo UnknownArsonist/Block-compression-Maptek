@@ -3,6 +3,7 @@
 #include "Compressor.h"
 #include "StreamBuffer.h"
 #include "DisplayOutput.h"
+#include <chrono>
 
 class StreamProcessor {
     private:
@@ -15,6 +16,7 @@ class StreamProcessor {
         std::thread inputStreamReaderThread;
         std::thread compressorThread;
         std::thread displayOutputThread;
+        std::chrono::time_point<std::chrono::system_clock> started;
         bool verbose = false;
 
         // Dimensions of the 3D block
