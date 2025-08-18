@@ -8,3 +8,20 @@
 #include <thread>
 #include <cstring>
 #include <mutex>
+
+struct SubBlock {
+    int x;
+    int y;
+    int z;
+    int l;
+    int w;
+    int h;
+    char tag;
+};
+
+struct ParentBlock {
+    int x;
+    int y;
+    int z;
+    char *block;
+};

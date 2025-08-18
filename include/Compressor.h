@@ -17,6 +17,9 @@ public:
     Compressor();
     ~Compressor();
 
+    // helper function
+    bool isUniform(const std::vector<std::vector<char>> check_slice);
+
     void compressParentBlock();
     void processParentBlocks(const std::vector<std::vector<std::vector<char>>> &sub_blocks);
     void printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks);
