@@ -1,6 +1,7 @@
 32,8,2,8,8,2
 o,sea
 t,TAS
+s,SA
 
 oooooooooooooooooooooooooooooooo
 oooooooooooooooooottttoooooooooo

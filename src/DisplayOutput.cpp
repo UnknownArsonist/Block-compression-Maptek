@@ -1,60 +1,34 @@
 #include "DisplayOutput.h"
 
-DisplayOutput::DisplayOutput(){}
+DisplayOutput::DisplayOutput() {}
+DisplayOutput::~DisplayOutput() {}
 
-DisplayOutput::DisplayOutput(InputStreamReader &processor)
-{
-    /*
-    count_x = processor.getXCount();
-    count_y = processor.getYCount();
-    count_z = processor.getZCount();
-    parent_x = processor.getParentX();
-    parent_y = processor.getParentY();
-    parent_z = processor.getParentZ();
-    tag_table = processor.getTagTable();
-    */
+void DisplayOutput::printSubBlock(SubBlock *sb) {
+    printf("%d,%d,%d,%d,%d,%d,%s\n", sb->x, sb->y, sb->z, sb->l, sb->w, sb->h, (*tag_table)[sb->tag].c_str());
 }
 
-void DisplayOutput::display_slice()
-{
-    /*
-    std::vector<std::string> slice;
-    std::string line;
-    for (int z = 0; z < count_z; z++)
-    {
-        slice.clear(); // Clear the slice for each z-layer
-        for (int y = 0; y < count_y; ++y)
-        {
-            int actual_y = count_y - 1 - y; // reverse y-index
+void DisplayOutput::displayBlocks() {
+    // TODO check for when input_stream or tag_table not set
 
-            for (int x = 0; x < count_x; ++x)
-            {
-                char tag = slice[y][x]; // y is the index in slice (top-down)
-                std::string label = tag_table[tag];
+    SubBlock *sub_block;
+    do {
+        input_stream->pop((void **)&sub_block);
 
-                std::cout << x << "," << actual_y << "," << z << ",1,1,1," << label << "\n";
-            }
-        }
-        if (z < count_z - 1)
-            getline(std::cin, line); // skip blank line
-    }
-    */
-    /*
-    for (int z = 0; z < count_z; ++z)
-    {
-        for (int y = 0; y < count_y; ++y)
-        {
-            for (int x = 0; x < count_x; ++x)
-            {
-                char tag = slice[y][x];
-                string label = tag_table[tag];
-                cout << x << "," << y << "," << z << ",1,1,1," << label << "\n";
-            }
-        }
-    }
-        */
+        if (sub_block == NULL)
+            break;
+        printSubBlock(sub_block);
+        free(sub_block);
+    } while (sub_block != NULL);
 }
 
-DisplayOutput::~DisplayOutput()
-{
+void DisplayOutput::passValues(std::unordered_map<char, std::string> *c_tag_table) {
+    tag_table = c_tag_table;
+}
+
+void DisplayOutput::passBuffers(StreamBuffer *c_input_stream) {
+    input_stream = c_input_stream;
+}
+
+void DisplayOutput::setVerbose(bool c_v) {
+    verbose = c_v;
 }

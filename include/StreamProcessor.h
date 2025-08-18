@@ -15,6 +15,7 @@ class StreamProcessor {
         std::thread inputStreamReaderThread;
         std::thread compressorThread;
         std::thread displayOutputThread;
+        bool verbose = false;
 
         // Dimensions of the 3D block
         int x_count;
@@ -33,8 +34,11 @@ class StreamProcessor {
         StreamProcessor();
         ~StreamProcessor();
 
+        void setVerbose(bool c_v);
+
         void setup();
         void start();
+        void end();
         
         InputStreamReader *getInputStreamReader();
         Compressor *getCompressor();

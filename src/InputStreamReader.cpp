@@ -15,7 +15,8 @@ InputStreamReader::~InputStreamReader()
     // Destructor implementation
 }
 
-void InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table) {
+void InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table)
+{
     x_count = c_x_count;
     y_count = c_y_count;
     z_count = c_z_count;
@@ -25,14 +26,9 @@ void InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_coun
     tag_table = c_tag_table;
 }
 
-void InputStreamReader::passBuffers(StreamBuffer *c_output_stream) {
-    output_stream = c_output_stream;
-}
-
-void InputStreamReader::startProcessing()
+void InputStreamReader::passBuffers(StreamBuffer *c_output_stream)
 {
-    getHeader();
-    processStream();
+    output_stream = c_output_stream;
 }
 
 void InputStreamReader::getHeader()
@@ -41,7 +37,9 @@ void InputStreamReader::getHeader()
     getLegendFromStream(tag_table);
 }
 
+// do we need this function?
 void InputStreamReader::getCommaSeparatedValuesFromStream() {}
+
 template <typename T, typename... Args>
 void InputStreamReader::getCommaSeparatedValuesFromStream(T *value, Args... args)
 {
@@ -106,7 +104,7 @@ void InputStreamReader::processStream()
 {
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y) * (*z_count / *parent_z);
     ParentBlock *parent_blocks[num_parent_blocks];
-    bool uniform[num_parent_blocks];
+    //bool uniform[num_parent_blocks];
     for (int i = 0; i < num_parent_blocks; i++) {
         parent_blocks[i] = NULL;
     }
@@ -120,7 +118,7 @@ void InputStreamReader::processStream()
 
     while ((ch = getc(input_stream)) != EOF) {
         int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y) + (*x_count / *parent_x) * (*y_count / *parent_y) * (z / *parent_z);
-        //printf("[%d] %d, %d, %d, %c\n", current_parent_block, x, y, z, ch);
+        // printf("[%d] %d, %d, %d, %c\n", current_parent_block, x, y, z, ch);
         if (ch == '\n') {
             x = 0;
             y++;
@@ -130,63 +128,41 @@ void InputStreamReader::processStream()
                 z++;
             }
         } else {
-            //printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
+            // printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
             if (parent_blocks[current_parent_block] == NULL) {
-                parent_blocks[current_parent_block] = (ParentBlock*)malloc(sizeof(ParentBlock));
-                parent_blocks[current_parent_block]->block = (char*)malloc(*parent_x * *parent_y * *parent_z * sizeof(char));
+                parent_blocks[current_parent_block] = (ParentBlock *)malloc(sizeof(ParentBlock));
+                parent_blocks[current_parent_block]->block = (char *)malloc(*parent_x * *parent_y * *parent_z * sizeof(char));
                 parent_blocks[current_parent_block]->x = x;
                 parent_blocks[current_parent_block]->y = y;
                 parent_blocks[current_parent_block]->z = z;
-                uniform[current_parent_block] = true;
+                //uniform[current_parent_block] = true;
             }
             int parent_relative_x = x % *parent_x;
             int parent_relative_y = y % *parent_y;
             int parent_relative_z = z % *parent_z;
-            //printf("%d, %d, %d, %d: %c\n", current_parent_block, parent_relative_x, parent_relative_y, z, ch);
+            // printf("%d, %d, %d, %d: %c\n", current_parent_block, parent_relative_x, parent_relative_y, z, ch);
 
             parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
-            if (ch != parent_blocks[current_parent_block]->block[0]) {
+            /*if (ch != parent_blocks[current_parent_block]->block[0]) {
                 uniform[current_parent_block] = false;
-            }
+            }*/
             if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
-                //printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
+                // printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
+                /*
                 if (uniform[current_parent_block]) {
                     free(parent_blocks[current_parent_block]->block);
                     parent_blocks[current_parent_block]->block = NULL;
                 }
-                int c;
-                do {
-                    c = output_stream->push((void**)&parent_blocks[current_parent_block]);
-                } while (c == -1);
+                */
+                output_stream->push((void **)&parent_blocks[current_parent_block]);
                 parent_blocks[current_parent_block] = NULL;
-                //output_stream->printBuffer();
+                // output_stream->printBuffer();
             }
             x++;
             n = 0;
         }
     }
-    int c;
-    do {
-        c = output_stream->push((void**)&null_ptr);
-    } while (c == -1);
-
-    /*
-    printf("\nPrint Our Parent_block Structure\n\n");
-
-    for (int pb = 0; pb < num_parent_blocks; pb++) {
-        printf("Parent Block %d\n", pb);
-        for (int z = 0; z < parent_z; z++) {
-            for (int y = 0; y < parent_y; y++) {
-                for (int x = 0; x < parent_x; x++) {
-                    //printf("%d, %d, %d, %d: %c\n", pb, x, y, z, parent_blocks[pb][x][y][z]);
-                    printf("%c", parent_blocks[pb][x][y][z]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-    }
-    */
+    output_stream->push((void **)&null_ptr);
 }
 
 // print the header information and the 3D block data
