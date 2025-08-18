@@ -10,8 +10,8 @@ StreamProcessor::~StreamProcessor()
 
 void StreamProcessor::setup()
 {
-    inputToCompressorBuffer.setSize(256);
-    compressorToOutputBuffer.setSize(1024);
+    inputToCompressorBuffer.setSize(1024);
+    compressorToOutputBuffer.setSize(8192);
     inputStreamReader.passValues(&x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z, &tag_table);
     inputStreamReader.passBuffers(&inputToCompressorBuffer);
     inputStreamReader.getHeader();

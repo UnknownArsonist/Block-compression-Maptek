@@ -16,9 +16,12 @@ void StreamBuffer::setSize(int buffer_size) {
 }
 
 int StreamBuffer::pop(void **buf) {
-    std::unique_lock<std::mutex> lk(read_mutex, std::defer_lock);
+    mutex.lock();
     
-    read_cv.wait(lk, [this]{return size_stored > 0;});
+    while (size_stored <= 0) {
+        mutex.unlock();
+        mutex.lock();
+    }
 
     *buf = *read_ptr;
     read_ptr += 1;
@@ -26,20 +29,21 @@ int StreamBuffer::pop(void **buf) {
         read_ptr = buffer;
     }
     size_stored--;
-    if (size_stored == buf_size - 1)
-        write_cv.notify_all();
-    read_mutex.unlock();
+    mutex.unlock();
     return 1;
 }
 
 int StreamBuffer::push(void **buf) {
+    mutex.lock();
     if (buf == NULL) {
         char *null_ptr = NULL;
         buf = (void **)&null_ptr;
     }
-    std::unique_lock<std::mutex> lk(write_mutex, std::defer_lock);
 
-    write_cv.wait(lk, [this]{return size_stored < buf_size;});
+    while (size_stored >= buf_size) {
+        mutex.unlock();
+        mutex.lock();
+    }
 
     //printf("%d\n", size_stored);
 
@@ -49,9 +53,7 @@ int StreamBuffer::push(void **buf) {
         write_ptr = buffer;
     }
     size_stored++;
-    if (size_stored == 1)
-        read_cv.notify_all();
-    write_mutex.unlock();
+    mutex.unlock();
     return 1;
 }
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "header.h"
-#include <condition_variable>
 
 class StreamBuffer {
     private:
@@ -10,11 +9,7 @@ class StreamBuffer {
         int buf_size;
         int size_stored;
 
-        std::condition_variable read_cv;
-        std::condition_variable write_cv;
-
-        std::mutex read_mutex;
-        std::mutex write_mutex;
+        std::mutex mutex;
     public:
         StreamBuffer();
         ~StreamBuffer();

@@ -67,31 +67,21 @@ void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string
     std::string value = "";
     int v = 0;
     int n = 0;
-    while ((c = getc(input_stream)) != EOF)
-    {
-        if (c == ',')
-        {
+    while ((c = getc(input_stream)) != EOF) {
+        if (c == ',') {
             v++;
-        }
-        else if (c == '\n')
-        {
-            if (n > 0)
-            {
+        } else if (c == '\n') {
+            if (n > 0) {
                 return;
             }
             (*legend)[key] = value;
             v = 0;
             value.clear();
             n++;
-        }
-        else
-        {
-            if (v == 0)
-            {
+        } else {
+            if (v == 0) {
                 key = c;
-            }
-            else
-            {
+            } else {
                 value += c;
             }
             n = 0;
@@ -127,7 +117,7 @@ void InputStreamReader::processStream()
                 y = 0;
                 z++;
             }
-        } else {
+        } else if (ch != '\r') {
             // printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
             if (parent_blocks[current_parent_block] == NULL) {
                 parent_blocks[current_parent_block] = (ParentBlock *)malloc(sizeof(ParentBlock));
