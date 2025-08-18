@@ -157,7 +157,7 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
                     for (int xi = x; xi < maxX; xi++)
                     {
                         // x1 = 1
-                        if (parent_block->block[(xi * *parent_y * *parent_z) + (y * *parent_z) + z] != target || visited[z][maxY][xi])
+                        if (parent_block->block[(xi * *parent_y * *parent_z) + (maxY * *parent_z) + z] != target || visited[z][maxY][xi])
                         {
                             uniformY = false;
                             break;
@@ -201,13 +201,24 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
                             visited[zz][yy][xx] = true;
 
                 // Output the packed block
-                printf("%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, maxX - x, maxY - y, maxZ - z, (*tagTable)[target].c_str());
+                SubBlock *sub_block = (SubBlock*)malloc(sizeof(SubBlock));
+                sub_block->x = parent_block->x + x;
+                sub_block->y = parent_block->y + y;
+                sub_block->z = parent_block->z + z;
+                sub_block->l = maxX - x;
+                sub_block->w = maxY - y;
+                sub_block->h = maxZ - z;
+                sub_block->tag = target;
+                
+                output_stream->push((void **)&sub_block);
+                //printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tagTable)[target].c_str());
             }
             // x += 1; x = 1; x = 2
         }
         // y = 1
         z++;
     }
+    free(parent_block);
 }
 
 /*
@@ -225,33 +236,20 @@ printf("Parent Block: %p\n", parent_block);
 
 void Compressor::compressStream()
 {
-    int pop_check;
     ParentBlock *parent_block;
+    char *null_ptr = NULL;
 
-    do
-    {
-        pop_check = -1;
-        do
-        {
-            pop_check = input_stream->pop((void **)&parent_block);
-        } while (pop_check == -1);
+    do {
+        input_stream->pop((void **)&parent_block);
 
-        if (parent_block == NULL)
+        if (parent_block == NULL) {
+            output_stream->push((void **)&null_ptr);
             break;
-
-        char *block = parent_block->block;
-
-        if (block == NULL)
-        {
-            /* i dont we need this since the compressor does both */
-            // printf("%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, *block, *parent_y, *parent_z, );
         }
-        else
-        {
-            // else block is non-uniform, do compression
-            processParentBlocks(parent_block);
-            // printf("%c\n", block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + 0]); // block[0][0][0]
-        }
+
+        // else block is non-uniform, do compression
+        processParentBlocks(parent_block);
+        // printf("%c\n", block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + 0]); // block[0][0][0]
 
     } while (parent_block != NULL);
 }

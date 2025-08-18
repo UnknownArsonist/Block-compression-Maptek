@@ -10,21 +10,36 @@ StreamProcessor::~StreamProcessor()
 
 void StreamProcessor::setup()
 {
+    inputToCompressorBuffer.setSize(256);
+    compressorToOutputBuffer.setSize(1024);
     inputStreamReader.passValues(&x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z, &tag_table);
     inputStreamReader.passBuffers(&inputToCompressorBuffer);
     inputStreamReader.getHeader();
     compressor.passValues(&parent_x, &parent_y, &parent_z, &tag_table);
     compressor.passBuffers(&inputToCompressorBuffer, &compressorToOutputBuffer);
-    inputToCompressorBuffer.setSize(64);
-    compressorToOutputBuffer.setSize(64);
+    displayOutput.passValues(&tag_table);
+    displayOutput.passBuffers(&compressorToOutputBuffer);
 }
 
 void StreamProcessor::start()
 {
     setup();
-    inputStreamReader.printHeader();
-    inputStreamReader.processStream();
-    compressor.compressStream();
+    if (verbose)
+        fprintf(stderr, "[SP] Setup Complete\n");
+    //inputStreamReader.printHeader();
+    inputStreamReaderThread = std::thread(&InputStreamReader::processStream, &inputStreamReader);
+    compressorThread = std::thread(&Compressor::compressStream, &compressor);
+    displayOutputThread = std::thread(&DisplayOutput::displayBlocks, &displayOutput);
+}
+
+void StreamProcessor::end() {
+    inputStreamReaderThread.join();
+    compressorThread.join();
+    displayOutputThread.join();
+}
+
+void StreamProcessor::setVerbose(bool c_v) {
+    verbose = c_v;
 }
 
 InputStreamReader *StreamProcessor::getInputStreamReader() { return &inputStreamReader; }

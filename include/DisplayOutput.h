@@ -1,24 +1,19 @@
 #pragma once
 #include "header.h"
-#include "InputStreamReader.h"
+#include "StreamBuffer.h"
 
-class DisplayOutput
-{
-private:
-    std::vector<std::string> slice;
-    std::unordered_map<char, std::string> tag_table;
-    int count_x;
-    int count_y;
-    int count_z;
-    int parent_x;
-    int parent_y;
-    int parent_z;
+class DisplayOutput {
+    private:
+        StreamBuffer *input_stream;
+        std::unordered_map<char, std::string> *tag_table;
+        bool verbose = false;
 
-public:
-    DisplayOutput();
-    DisplayOutput(InputStreamReader &processor);
-    void display_slice();
-    void load_processor(InputStreamReader &processor);
-
-    ~DisplayOutput();
+    public:
+        DisplayOutput();
+        ~DisplayOutput();
+        void displayBlocks();
+        void printSubBlock(SubBlock *sb);
+        void passBuffers(StreamBuffer *c_input_stream);
+        void passValues(std::unordered_map<char, std::string> *c_tag_table);
+        void setVerbose(bool c_v);
 };

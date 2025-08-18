@@ -16,53 +16,32 @@ void StreamBuffer::setSize(int buffer_size) {
 }
 
 int StreamBuffer::pop(void **buf) {
-    mutex.lock();
-    if (size_stored <= 0) {
-        return -1;
-    }
+    std::unique_lock<std::mutex> lk(read_mutex, std::defer_lock);
     
+    read_cv.wait(lk, [this]{return size_stored > 0;});
+
     *buf = *read_ptr;
     read_ptr += 1;
     if (read_ptr > &buffer[buf_size-1]) {
         read_ptr = buffer;
     }
     size_stored--;
-    mutex.unlock();
+    if (size_stored == buf_size - 1)
+        write_cv.notify_all();
+    read_mutex.unlock();
     return 1;
 }
-/*
-int StreamBuffer::read(void *buf, int num_bytes) {
-    mutex.lock();
-    if (size_stored < num_bytes) {
-        return -1;
-    }
-
-    char *temp_read_ptr = read_ptr;
-    int temp_num_bytes = num_bytes;
-    int split = (read_ptr + num_bytes) - (buffer + buf_size);
-
-    if (split > 0) {
-        temp_num_bytes -= split;
-        read_ptr = buffer + split;
-        memcpy(((char*)buf) + temp_num_bytes, buffer, split);
-    } else {
-        read_ptr = read_ptr + temp_num_bytes;
-    }
-
-    memcpy(buf, temp_read_ptr, temp_num_bytes);
-    size_stored -= num_bytes;
-    mutex.unlock();
-    return num_bytes;
-}
-*/
 
 int StreamBuffer::push(void **buf) {
-    mutex.lock();
-    if (size_stored >= buf_size) {
-        return -1;
+    if (buf == NULL) {
+        char *null_ptr = NULL;
+        buf = (void **)&null_ptr;
     }
+    std::unique_lock<std::mutex> lk(write_mutex, std::defer_lock);
 
-    //printf("%p\n", buf);
+    write_cv.wait(lk, [this]{return size_stored < buf_size;});
+
+    //printf("%d\n", size_stored);
 
     *write_ptr = *buf;
     write_ptr += 1;
@@ -70,7 +49,9 @@ int StreamBuffer::push(void **buf) {
         write_ptr = buffer;
     }
     size_stored++;
-    mutex.unlock();
+    if (size_stored == 1)
+        read_cv.notify_all();
+    write_mutex.unlock();
     return 1;
 }
 
