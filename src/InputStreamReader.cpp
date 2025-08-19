@@ -51,7 +51,7 @@ void InputStreamReader::getCommaSeparatedValuesFromStream(T *value, Args... args
         {
             break;
         }
-        else
+        else if (c != '\r')
         {
             *value *= 10;
             *value += (int)c - '0';
@@ -156,12 +156,12 @@ void InputStreamReader::processStream()
 }
 
 // print the header information and the 3D block data
-void InputStreamReader::printHeader()
+void InputStreamReader::printHeader(FILE *out)
 {
     // print the header information
-    printf("%d, %d, %d, %d, %d, %d\n", *x_count, *y_count, *z_count, *parent_x, *parent_y, *parent_z);
+    fprintf(out, "%d, %d, %d, %d, %d, %d\n", *x_count, *y_count, *z_count, *parent_x, *parent_y, *parent_z);
     for (const auto &e : *tag_table)
     {
-        printf("%c, %s\n", e.first, e.second.c_str());
+        fprintf(out, "%c, %s\n", e.first, e.second.c_str());
     }
 }

@@ -26,6 +26,7 @@ void StreamProcessor::start()
     setup();
     if (verbose) {
         fprintf(stderr, "[SP] Setup Complete\n");
+        inputStreamReader.printHeader(stderr);
         started = std::chrono::high_resolution_clock::now();
     }
     //inputStreamReader.printHeader();

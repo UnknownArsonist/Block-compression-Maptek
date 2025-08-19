@@ -8,7 +8,7 @@ int main()
 {
     StreamProcessor processor;
     Compressor compressor;
-    processor.setVerbose(true);
+    //processor.setVerbose(true);
     processor.start();
     processor.end();
     // processor.getInputStreamReader()->printHeader();
