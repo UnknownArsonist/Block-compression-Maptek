@@ -15,7 +15,7 @@ void StreamProcessor::setup()
     inputStreamReader.passValues(&x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z, &tag_table);
     inputStreamReader.passBuffers(&inputToCompressorBuffer);
     inputStreamReader.getHeader();
-    compressor.passValues(&parent_x, &parent_y, &parent_z, &tag_table);
+    compressor.passValues(&parent_x, &parent_y, &parent_z, &tag_table, x_count, y_count, z_count);
     compressor.passBuffers(&inputToCompressorBuffer, &compressorToOutputBuffer);
     displayOutput.passValues(&tag_table);
     displayOutput.passBuffers(&compressorToOutputBuffer);
@@ -24,36 +24,42 @@ void StreamProcessor::setup()
 void StreamProcessor::start()
 {
     setup();
-    if (verbose) {
+    if (verbose)
+    {
         fprintf(stderr, "[SP] Setup Complete\n");
         inputStreamReader.printHeader(stderr);
         started = std::chrono::high_resolution_clock::now();
     }
-    //inputStreamReader.printHeader();
+    // inputStreamReader.printHeader();
     inputStreamReaderThread = std::thread(&InputStreamReader::processStream, &inputStreamReader);
     compressorThread = std::thread(&Compressor::compressStream, &compressor);
     displayOutputThread = std::thread(&DisplayOutput::displayBlocks, &displayOutput);
 }
 
-void StreamProcessor::end() {
+void StreamProcessor::end()
+{
     inputStreamReaderThread.join();
-    if (verbose) {
+    if (verbose)
+    {
         auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "InputStreamReader Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end-started).count() << std::endl;
+        std::cerr << "InputStreamReader Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
     }
     compressorThread.join();
-    if (verbose) {
+    if (verbose)
+    {
         auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "Compressor Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end-started).count() << std::endl;
+        std::cerr << "Compressor Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
     }
     displayOutputThread.join();
-    if (verbose) {
+    if (verbose)
+    {
         auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "Output Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end-started).count() << std::endl;
+        std::cerr << "Output Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
     }
 }
 
-void StreamProcessor::setVerbose(bool c_v) {
+void StreamProcessor::setVerbose(bool c_v)
+{
     verbose = c_v;
 }
 

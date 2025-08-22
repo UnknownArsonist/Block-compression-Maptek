@@ -1,11 +1,9 @@
 #include "Compressor.h"
 
-Compressor::Compressor()
-{
-}
-
+Compressor::Compressor() {}
 Compressor::~Compressor() {}
 
+// -----------UNWANTED FUNCTIONS------------- //
 void Compressor::compressParentBlock()
 {
 
@@ -117,9 +115,40 @@ void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std:
         printf("-----\n");
     }
 }
+// -----------ENDS HERE-------- ------------- //
 
+// -----------MAIN FUNCTIONS-------- -------- //
+void Compressor::OctreeCompression(ParentBlock *parent_block)
+{
+    // parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z]
+    // Build the octree for this parent block
+    OctTreeNode *root;
+    OctTreeNode octTree;
+
+    root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
+
+    // these are the dimensions of the actual block
+    // Collect the subblocks from the octree
+    std::vector<SubBlock> subBlocks;
+    octTree.collectSubBlocks(root, subBlocks, tagTable, parent_block->x, parent_block->y, parent_block->z);
+
+    // Merge them like greedy
+    std::vector<SubBlock> mergedBlocks = octTree.mergeSubBlocks(subBlocks);
+
+    // Push merged subblocks to output stream
+    for (auto &sb : mergedBlocks)
+    {
+        SubBlock *out = (SubBlock *)malloc(sizeof(SubBlock));
+        *out = sb;
+        output_stream->push((void **)&out);
+    }
+    // Clean up the octree to free memory
+    octTree.deleteTree(root);
+    root = nullptr;
+}
 void Compressor::processParentBlocks(ParentBlock *parent_block)
 {
+    // std::cout << parent_block->block-
     int z = 0;
     while (z < *parent_z)
     {
@@ -201,7 +230,7 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
                             visited[zz][yy][xx] = true;
 
                 // Output the packed block
-                SubBlock *sub_block = (SubBlock*)malloc(sizeof(SubBlock));
+                SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
                 sub_block->x = parent_block->x + x;
                 sub_block->y = parent_block->y + y;
                 sub_block->z = parent_block->z + z;
@@ -209,9 +238,9 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
                 sub_block->w = maxY - y;
                 sub_block->h = maxZ - z;
                 sub_block->tag = target;
-                
+
                 output_stream->push((void **)&sub_block);
-                //printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tagTable)[target].c_str());
+                // printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tagTable)[target].c_str());
             }
             // x += 1; x = 1; x = 2
         }
@@ -221,49 +250,70 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
     free(parent_block);
 }
 
-/*
-printf("Parent Block: %p\n", parent_block);
-    for (int z = 0; z < *parent_z; z++) {
-        for (int y = 0; y < *parent_y; y++) {
-            for (int x = 0; x < *parent_x; x++) {
-                printf("%c", parent_block[(x * *parent_y * *parent_z) + (y * *parent_z) + z]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-}
-*/
-
 void Compressor::compressStream()
 {
     ParentBlock *parent_block;
     char *null_ptr = NULL;
 
-    do {
+    do
+    {
         input_stream->pop((void **)&parent_block);
 
-        if (parent_block == NULL) {
+        if (parent_block == NULL)
+        {
             output_stream->push((void **)&null_ptr);
             break;
         }
 
         // else block is non-uniform, do compression
-        processParentBlocks(parent_block);
-        // printf("%c\n", block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + 0]); // block[0][0][0]
+        // processParentBlocks(parent_block);
+        OctreeCompression(parent_block);
+        //  printf("%c\n", block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + 0]); // block[0][0][0]
 
     } while (parent_block != NULL);
 }
+// -----------ENDS HERE-------- ------------- //
 
-void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table)
+// -----------HELPER FUNCTIONS ------------- //
+void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table, int mx_count, int my_count, int mz_count)
 {
     parent_x = c_parent_x;
     parent_y = c_parent_y;
     parent_z = c_parent_z;
+
+    this->mx = mx;
+    this->my = my;
+    this->mz = mz;
     tagTable = tag_table;
 }
-
 void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
 {
     input_stream = c_input_stream;
     output_stream = c_output_stream;
 }
+void OctTreeNode::deleteTree(OctTreeNode *node)
+{
+    if (!node)
+        return;
+
+    // Delete children in the fixed array
+    for (int i = 0; i < 8; ++i)
+    {
+        if (node->children[i])
+        {
+            deleteTree(node->children[i]);
+            node->children[i] = nullptr;
+        }
+    }
+
+    // Delete children in the content-driven vector
+    for (auto child : node->childrenVector)
+    {
+        deleteTree(child);
+    }
+    node->childrenVector.clear();
+
+    // Finally delete this node
+    delete node;
+}
+// -----------ENDS HERE-------- ------------- //

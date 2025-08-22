@@ -5,44 +5,45 @@
 #include "DisplayOutput.h"
 #include <chrono>
 
-class StreamProcessor {
-    private:
-        InputStreamReader inputStreamReader;
-        Compressor compressor;
-        DisplayOutput displayOutput;
-        StreamBuffer inputToCompressorBuffer;
-        StreamBuffer compressorToOutputBuffer;
+class StreamProcessor
+{
+private:
+    InputStreamReader inputStreamReader;
+    Compressor compressor;
+    DisplayOutput displayOutput;
+    StreamBuffer inputToCompressorBuffer;
+    StreamBuffer compressorToOutputBuffer;
 
-        std::thread inputStreamReaderThread;
-        std::thread compressorThread;
-        std::thread displayOutputThread;
-        std::chrono::time_point<std::chrono::system_clock> started;
-        bool verbose = false;
+    std::thread inputStreamReaderThread;
+    std::thread compressorThread;
+    std::thread displayOutputThread;
+    std::chrono::time_point<std::chrono::system_clock> started;
+    bool verbose = false;
 
-        // Dimensions of the 3D block
-        int x_count;
-        int y_count;
-        int z_count;
+    // Dimensions of the 3D block
+    int x_count;
+    int y_count;
+    int z_count;
 
-        // Parent Block dimensions
-        int parent_x;
-        int parent_y;
-        int parent_z;
+    // Parent Block dimensions
+    int parent_x;
+    int parent_y;
+    int parent_z;
 
-        // Tag table to map characters to strings
-        std::unordered_map<char, std::string> tag_table;
+    // Tag table to map characters to strings
+    std::unordered_map<char, std::string> tag_table;
 
-    public:
-        StreamProcessor();
-        ~StreamProcessor();
+public:
+    StreamProcessor();
+    ~StreamProcessor();
 
-        void setVerbose(bool c_v);
+    void setVerbose(bool c_v);
 
-        void setup();
-        void start();
-        void end();
-        
-        InputStreamReader *getInputStreamReader();
-        Compressor *getCompressor();
-        DisplayOutput *getDisplayOutput();
+    void setup();
+    void start();
+    void end();
+
+    InputStreamReader *getInputStreamReader();
+    Compressor *getCompressor();
+    DisplayOutput *getDisplayOutput();
 };
