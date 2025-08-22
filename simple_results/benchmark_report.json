@@ -1,0 +1,18 @@
+{
+  "benchmark_timestamp": "2025-08-22 16:19:14",
+  "executable": "./myapp",
+  "total_tests": 5,
+  "successful_tests": 5,
+  "overall_success_rate": 1.0,
+  "results": [
+    {
+      "test_file": "simple_test_data/layered_data.txt",
+      "test_name": "layered_data.txt",
+      "iterations": 3,
+      "success_rate": 1.0,
+      "dimensions": [
+        32,
+        32,
+        32
+      ],
+      "original_voxels": 
