@@ -1,29 +1,35 @@
-#include "StreamProcessor.h"
+#include "../include/StreamProcessor.h"
 #include <signal.h>
-#include <execinfo.h>
-/* NOTES:
-    Could use fwrite from <cstdio> instead of printf for output to stdout (more efficient)
-*/
+#include <cstdio>
+#include <windows.h>
 
+#ifdef _WIN32
 void signal_handler(int sig)
 {
-    void *array[10];
-    size_t size;
+    // Allocate memory to hold the stack trace
+    const int max_frames = 10;
+    void* stack[max_frames];
+    unsigned short frames;
 
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 10);
+    // Capture the stack trace (addresses only, no symbols)
+    frames = CaptureStackBackTrace(0, max_frames, stack, NULL);
 
-    // print out all the frames to stderr
+    // Print stack trace (addresses only)
     fprintf(stderr, "Error: signal %d:\n", sig);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    for (int i = 0; i < frames; ++i) {
+        fprintf(stderr, "Frame %d: 0x%p\n", i, stack[i]);
+    }
     exit(1);
 }
+#endif
 
 int main()
 {
-    // Install signal handlers for debugging
+    // Install signal handlers for debugging on Windows
+    #ifdef _WIN32
     signal(SIGSEGV, signal_handler);
     signal(SIGABRT, signal_handler);
+    #endif
 
     StreamProcessor processor;
     // processor.setVerbose(true);

@@ -5,7 +5,7 @@
 # Compiler settings
 CC = x86_64-w64-mingw32-g++        # 64-bit Windows compiler
 CXXFLAGS = -std=c++11 -Wall -Iinclude -static
-LDFLAGS = 
+LDFLAGS = -l dbghelp               # Add dbghelp for stack trace functionality
 
 # Makefile settings
 APPNAME = myapp

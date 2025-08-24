@@ -1,4 +1,4 @@
-#include "StreamBuffer.h"
+#include "../include/StreamBuffer.h"
 
 StreamBuffer::StreamBuffer()
 {

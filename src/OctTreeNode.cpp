@@ -1,4 +1,4 @@
-#include "OctTreeNode.h"
+#include "../include/OctTreeNode.h"
 
 // Constructors & deconstructors
 OctTreeNode::OctTreeNode(/* args */)

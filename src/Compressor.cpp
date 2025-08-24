@@ -1,4 +1,4 @@
-#include "Compressor.h"
+#include "../include/Compressor.h"
 
 Compressor::Compressor() {}
 Compressor::~Compressor() {}
