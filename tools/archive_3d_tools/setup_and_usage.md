@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ### 2. Compile the C++ Project
 
 ```bash
-cd /Users/a1847007/Desktop/Block-compression-Maptek
+cd ./Block-compression-Maptek
 make clean
 make
 ```
