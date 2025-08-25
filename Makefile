@@ -1,66 +1,52 @@
 ########################################################################
-####################### Makefile Template ##############################
+####################### Makefile for Windows ##########################
 ########################################################################
 
-# Compiler settings - Can be customized.
-CC = g++
-CXXFLAGS = -std=c++11 -Wall -Iinclude -pthread
+# Compiler settings
+CC = x86_64-w64-mingw32-g++        # 64-bit Windows compiler
+CXXFLAGS = -std=c++11 -Wall -Iinclude -static
 LDFLAGS = 
 
-# Makefile settings - Can be customized.
+# Makefile settings
 APPNAME = myapp
 EXT = .cpp
 SRCDIR = ./src
 OBJDIR = ./obj
+EXE = .exe
 
 ############## Do not change anything from here downwards! #############
 SRC = $(wildcard $(SRCDIR)/*$(EXT))
 OBJ = $(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)/%.o)
-DEP = $(OBJ:$(OBJDIR)/%.o=%.d)
-# UNIX-based OS variables & settings
-RM = rm
-DELOBJ = $(OBJ)
-# Windows OS variables & settings
-DEL = del
-EXE = .exe
-WDELOBJ = $(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)\\%.o)
+
+# Windows-compatible remove command
+RM = rm -f
 
 ########################################################################
 ####################### Targets beginning here #########################
 ########################################################################
 
-all: $(APPNAME)
+all: $(APPNAME)$(EXE)
 
-# Builds the app
-$(APPNAME): $(OBJ)
-	$(CC) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+# Create obj directory if it doesn't exist
+$(OBJDIR):
+	@if not exist "$(OBJDIR)" mkdir "$(OBJDIR)"
 
+# Build the application
+$(APPNAME)$(EXE): $(OBJDIR) $(OBJ)
+	$(CC) $(CXXFLAGS) -o $@ $(OBJ) $(LDFLAGS)
 
-# Includes all .h files
--include $(DEP)
-
-# Building rule for .o files and its .c/.cpp in combination with all .h
+# Build object files
 $(OBJDIR)/%.o: $(SRCDIR)/%$(EXT)
-	$(CC) $(CXXFLAGS) -o $@ -c $<
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
-################### Cleaning rules for Unix-based OS ###################
-# Cleans complete project
-.PHONY: clean
+################### Cleaning rules ###################
+.PHONY: clean cleandep all
+
+# Clean complete project
 clean:
-	$(RM) $(DELOBJ) $(DEP) $(APPNAME)
+	$(RM) $(OBJDIR)\*.o
+	$(RM) $(APPNAME)$(EXE)
 
-# Cleans only all files with the extension .d
-.PHONY: cleandep
+# Clean only object files
 cleandep:
-	$(RM) $(DEP)
-
-#################### Cleaning rules for Windows OS #####################
-# Cleans complete project
-.PHONY: cleanw
-cleanw:
-	$(DEL) $(WDELOBJ) $(DEP) $(APPNAME)$(EXE)
-
-# Cleans only all files with the extension .d
-.PHONY: cleandepw
-cleandepw:
-	$(DEL) $(DEP)
+	$(RM) $(OBJDIR)\*.o

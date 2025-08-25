@@ -1,65 +1,83 @@
 #include "StreamBuffer.h"
 
-StreamBuffer::StreamBuffer() {
+StreamBuffer::StreamBuffer()
+{
     size_stored = 0;
 }
 
-StreamBuffer::~StreamBuffer() {
+StreamBuffer::~StreamBuffer()
+{
 }
 
-void StreamBuffer::setSize(int buffer_size) {
-    buffer = (void**)malloc(buffer_size * sizeof(void*));
+void StreamBuffer::setSize(int buffer_size)
+{
+    buffer = (void **)malloc(buffer_size * sizeof(void *));
     buf_size = buffer_size;
     size_stored = 0;
     write_ptr = buffer;
     read_ptr = buffer;
 }
 
-int StreamBuffer::pop(void **buf) {
-    mutex.lock();
-    
-    while (size_stored <= 0) {
-        mutex.unlock();
-        mutex.lock();
+int StreamBuffer::pop(void **buf)
+{
+    std::unique_lock<std::mutex> lock(mutex);
+
+    // Wait until there's data available
+    while (size_stored <= 0)
+    {
+        lock.unlock();
+        std::this_thread::yield();
+        lock.lock();
     }
 
     *buf = *read_ptr;
-    read_ptr += 1;
-    if (read_ptr > &buffer[buf_size-1]) {
+    read_ptr++;
+
+    // Fix: Use modulo arithmetic for circular buffer
+    if (read_ptr >= buffer + buf_size)
+    {
         read_ptr = buffer;
     }
+
     size_stored--;
-    mutex.unlock();
     return 1;
 }
 
-int StreamBuffer::push(void **buf) {
-    mutex.lock();
-    if (buf == NULL) {
+int StreamBuffer::push(void **buf)
+{
+    std::unique_lock<std::mutex> lock(mutex);
+
+    if (buf == NULL)
+    {
         char *null_ptr = NULL;
         buf = (void **)&null_ptr;
     }
 
-    while (size_stored >= buf_size) {
-        mutex.unlock();
-        mutex.lock();
+    // Wait until there's space available
+    while (size_stored >= buf_size)
+    {
+        lock.unlock();
+        std::this_thread::yield();
+        lock.lock();
     }
-
-    //printf("%d\n", size_stored);
 
     *write_ptr = *buf;
-    write_ptr += 1;
-    if (write_ptr > &buffer[buf_size-1]) {
+    write_ptr++;
+
+    // Fix: Use modulo arithmetic for circular buffer
+    if (write_ptr >= buffer + buf_size)
+    {
         write_ptr = buffer;
     }
+
     size_stored++;
-    mutex.unlock();
     return 1;
 }
-
-void StreamBuffer::printBuffer() {
+void StreamBuffer::printBuffer()
+{
     printf("[");
-    for (int i = 0; i < buf_size; i++) {
+    for (int i = 0; i < buf_size; i++)
+    {
         printf("%p", buffer[i]);
         if (i != buf_size - 1)
             printf(", ");

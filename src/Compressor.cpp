@@ -120,31 +120,52 @@ void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std:
 // -----------MAIN FUNCTIONS-------- -------- //
 void Compressor::OctreeCompression(ParentBlock *parent_block)
 {
-    // parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z]
-    // Build the octree for this parent block
-    OctTreeNode *root;
-    OctTreeNode octTree;
+    // Check if the parent block is uniform first
+    char uniformTag;
+    if (octTree.isUniform(parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z, uniformTag))
+    {
+        // If uniform, output a single block
+        SubBlock *sb = (SubBlock *)malloc(sizeof(SubBlock));
+        sb->x = parent_block->x;
+        sb->y = parent_block->y;
+        sb->z = parent_block->z;
+        sb->l = *parent_x;
+        sb->w = *parent_y;
+        sb->h = *parent_z;
+        sb->tag = uniformTag;
 
-    root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
+        output_stream->push((void **)&sb);
+        free(parent_block);
+        return;
+    }
 
-    // these are the dimensions of the actual block
-    // Collect the subblocks from the octree
+    // Only use octree for non-uniform blocks
+    OctTreeNode *root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
+
     std::vector<SubBlock> subBlocks;
     octTree.collectSubBlocks(root, subBlocks, tagTable, parent_block->x, parent_block->y, parent_block->z);
 
-    // Merge them like greedy
     std::vector<SubBlock> mergedBlocks = octTree.mergeSubBlocks(subBlocks);
 
-    // Push merged subblocks to output stream
-    for (auto &sb : mergedBlocks)
+    // Limit the number of output blocks (safety check)
+    const size_t MAX_BLOCKS_PER_PARENT = 256; // Adjust as needed
+    if (mergedBlocks.size() > MAX_BLOCKS_PER_PARENT)
     {
-        SubBlock *out = (SubBlock *)malloc(sizeof(SubBlock));
-        *out = sb;
-        output_stream->push((void **)&out);
+        // Fall back to simpler compression if octree produces too many blocks
+        processParentBlocks(parent_block);
     }
-    // Clean up the octree to free memory
+    else
+    {
+        for (auto &sb : mergedBlocks)
+        {
+            SubBlock *out = (SubBlock *)malloc(sizeof(SubBlock));
+            *out = sb;
+            output_stream->push((void **)&out);
+        }
+    }
+
     octTree.deleteTree(root);
-    root = nullptr;
+    free(parent_block);
 }
 void Compressor::processParentBlocks(ParentBlock *parent_block)
 {
@@ -254,6 +275,7 @@ void Compressor::compressStream()
 {
     ParentBlock *parent_block;
     char *null_ptr = NULL;
+    int block_count = 0;
 
     do
     {
@@ -265,10 +287,17 @@ void Compressor::compressStream()
             break;
         }
 
-        // else block is non-uniform, do compression
-        // processParentBlocks(parent_block);
-        OctreeCompression(parent_block);
-        //  printf("%c\n", block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + 0]); // block[0][0][0]
+        block_count++;
+
+        // Safety check: if we've processed too many blocks, use simpler algorithm
+        if (block_count > 10000)
+        { // Adjust this threshold as needed
+            processParentBlocks(parent_block);
+        }
+        else
+        {
+            OctreeCompression(parent_block);
+        }
 
     } while (parent_block != NULL);
 }
@@ -290,30 +319,5 @@ void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_outpu
 {
     input_stream = c_input_stream;
     output_stream = c_output_stream;
-}
-void OctTreeNode::deleteTree(OctTreeNode *node)
-{
-    if (!node)
-        return;
-
-    // Delete children in the fixed array
-    for (int i = 0; i < 8; ++i)
-    {
-        if (node->children[i])
-        {
-            deleteTree(node->children[i]);
-            node->children[i] = nullptr;
-        }
-    }
-
-    // Delete children in the content-driven vector
-    for (auto child : node->childrenVector)
-    {
-        deleteTree(child);
-    }
-    node->childrenVector.clear();
-
-    // Finally delete this node
-    delete node;
 }
 // -----------ENDS HERE-------- ------------- //

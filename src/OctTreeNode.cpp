@@ -168,8 +168,12 @@ OctTreeNode *OctTreeNode::buildContentDriven3D(ParentBlock &grid,
 {
     char tag;
 
-    // Step 1: Entire block uniform?
-    if (isUniform(&grid, x0, y0, z0, sizeX, sizeY, sizeZ, tag))
+    // Set a minimum size to avoid excessive subdivision
+    const int MIN_SIZE = 2; // Adjust this value as needed
+
+    // Step 1: Entire block uniform or below minimum size?
+    if (isUniform(&grid, x0, y0, z0, sizeX, sizeY, sizeZ, tag) ||
+        (sizeX <= MIN_SIZE && sizeY <= MIN_SIZE && sizeZ <= MIN_SIZE))
     {
         OctTreeNode *leaf = new OctTreeNode();
         leaf->x0 = x0;
@@ -287,7 +291,6 @@ OctTreeNode *OctTreeNode::buildContentDriven3D(ParentBlock &grid,
 bool OctTreeNode::isUniform(ParentBlock *parent_block, int x0, int y0, int z0,
                             int sizeX, int sizeY, int sizeZ, char &outTag)
 {
-    // [(x * *parent_y * *parent_z) + (y * *parent_z) + z]
     char first = parent_block->block[(0 * sizeY * sizeZ) + (0 * sizeZ) + 0];
     for (int z = 0; z < sizeZ; z++)
     {
@@ -295,15 +298,12 @@ bool OctTreeNode::isUniform(ParentBlock *parent_block, int x0, int y0, int z0,
         {
             for (int x = 0; x < sizeX; x++)
             {
-                // std::cout << parent_block->block[(x * sizeY * sizeZ) + (y * sizeZ) + z];
                 if (parent_block->block[(x * sizeY * sizeZ) + (y * sizeZ) + z] != first)
                 {
                     return false;
                 }
             }
-            // std::cout << std::endl;
         }
-        // std::cout << std::endl;
     }
     outTag = first;
     return true;
@@ -311,96 +311,172 @@ bool OctTreeNode::isUniform(ParentBlock *parent_block, int x0, int y0, int z0,
 
 std::vector<SubBlock> OctTreeNode::mergeSubBlocks(const std::vector<SubBlock> &blocks)
 {
-    std::vector<SubBlock> merged = blocks;
+    if (blocks.empty())
+        return blocks;
 
-    bool mergedSomething = true;
-    while (mergedSomething)
+    std::vector<SubBlock> merged = blocks;
+    bool changed;
+
+    do
     {
-        mergedSomething = false;
-        std::vector<SubBlock> newList;
-        std::vector<bool> used(merged.size(), false);
+        changed = false;
+        std::vector<SubBlock> newMerged;
+        std::vector<bool> mergedFlag(merged.size(), false);
 
         for (size_t i = 0; i < merged.size(); i++)
         {
-            if (used[i])
+            if (mergedFlag[i])
                 continue;
-            SubBlock a = merged[i];
-            bool didMerge = false;
 
-            for (size_t j = i + 1; j < merged.size(); j++)
+            SubBlock current = merged[i];
+            bool foundMerge = true;
+
+            while (foundMerge)
             {
-                if (used[j])
-                    continue;
-                SubBlock b = merged[j];
+                foundMerge = false;
 
-                // same tag
-                if (a.tag != b.tag)
-                    continue;
+                for (size_t j = i + 1; j < merged.size(); j++)
+                {
+                    if (mergedFlag[j])
+                        continue;
 
-                // Try merge along X
-                if (a.y == b.y && a.z == b.z && a.w == b.w && a.h == b.h)
-                {
-                    if (a.x + a.l == b.x)
+                    SubBlock candidate = merged[j];
+
+                    // Must have same tag
+                    if (current.tag != candidate.tag)
+                        continue;
+
+                    // Try to merge in X direction (same Y, Z, height, width)
+                    if (current.y == candidate.y && current.z == candidate.z &&
+                        current.w == candidate.w && current.h == candidate.h)
                     {
-                        a.l += b.l;
-                        used[j] = true;
-                        didMerge = true;
+                        if (current.x + current.l == candidate.x)
+                        {
+                            current.l += candidate.l;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
+                        else if (candidate.x + candidate.l == current.x)
+                        {
+                            current.x = candidate.x;
+                            current.l += candidate.l;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
                     }
-                    else if (b.x + b.l == a.x)
+
+                    // Try to merge in Y direction (same X, Z, length, height)
+                    if (current.x == candidate.x && current.z == candidate.z &&
+                        current.l == candidate.l && current.h == candidate.h)
                     {
-                        a.x = b.x;
-                        a.l += b.l;
-                        used[j] = true;
-                        didMerge = true;
+                        if (current.y + current.w == candidate.y)
+                        {
+                            current.w += candidate.w;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
+                        else if (candidate.y + candidate.w == current.y)
+                        {
+                            current.y = candidate.y;
+                            current.w += candidate.w;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
                     }
-                }
-                // Try merge along Y
-                else if (a.x == b.x && a.z == b.z && a.l == b.l && a.h == b.h)
-                {
-                    if (a.y + a.w == b.y)
+
+                    // Try to merge in Z direction (same X, Y, length, width)
+                    if (current.x == candidate.x && current.y == candidate.y &&
+                        current.l == candidate.l && current.w == candidate.w)
                     {
-                        a.w += b.w;
-                        used[j] = true;
-                        didMerge = true;
+                        if (current.z + current.h == candidate.z)
+                        {
+                            current.h += candidate.h;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
+                        else if (candidate.z + candidate.h == current.z)
+                        {
+                            current.z = candidate.z;
+                            current.h += candidate.h;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
                     }
-                    else if (b.y + b.w == a.y)
+
+                    // Try to merge in XY plane (same Z, height)
+                    if (current.z == candidate.z && current.h == candidate.h)
                     {
-                        a.y = b.y;
-                        a.w += b.w;
-                        used[j] = true;
-                        didMerge = true;
-                    }
-                }
-                // Try merge along Z
-                else if (a.x == b.x && a.y == b.y && a.l == b.l && a.w == b.w)
-                {
-                    if (a.z + a.h == b.z)
-                    {
-                        a.h += b.h;
-                        used[j] = true;
-                        didMerge = true;
-                    }
-                    else if (b.z + b.h == a.z)
-                    {
-                        a.z = b.z;
-                        a.h += b.h;
-                        used[j] = true;
-                        didMerge = true;
+                        // Adjacent in X with same Y range
+                        if (current.y == candidate.y && current.w == candidate.w &&
+                            current.x + current.l == candidate.x)
+                        {
+                            current.l += candidate.l;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
+                        // Adjacent in Y with same X range
+                        if (current.x == candidate.x && current.l == candidate.l &&
+                            current.y + current.w == candidate.y)
+                        {
+                            current.w += candidate.w;
+                            mergedFlag[j] = true;
+                            foundMerge = true;
+                            changed = true;
+                            break;
+                        }
                     }
                 }
             }
 
-            newList.push_back(a);
-            if (didMerge)
-                mergedSomething = true;
+            newMerged.push_back(current);
         }
 
-        merged.swap(newList);
-    }
+        merged = newMerged;
+
+    } while (changed);
 
     return merged;
 }
+void OctTreeNode::deleteTree(OctTreeNode *node)
+{
+    if (!node)
+        return;
 
+    // Delete fixed array children
+    for (int i = 0; i < 8; ++i)
+    {
+        if (node->children[i])
+        {
+            deleteTree(node->children[i]);
+            delete node->children[i];
+            node->children[i] = nullptr;
+        }
+    }
+
+    // Delete vector children
+    for (auto child : node->childrenVector)
+    {
+        deleteTree(child);
+        delete child;
+    }
+    node->childrenVector.clear();
+
+    // Don't delete the node itself here, let the caller do that
+}
 void OctTreeNode::collectSubBlocks(OctTreeNode *node, std::vector<SubBlock> &blocks,
                                    std::unordered_map<char, std::string> *tag_table, int originX, int originY, int originZ)
 {
