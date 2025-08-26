@@ -15,6 +15,16 @@ from typing import Dict, List
 import tempfile
 from pathlib import Path
 
+def convert_numpy_types(obj):
+    """Convert numpy types to native Python types for JSON serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f'Object of type {obj.__class__.__name__} is not JSON serializable')
+
 class SimpleBenchmark:
     def __init__(self, executable_path: str = "./myapp"):
         self.executable_path = executable_path
@@ -243,7 +253,7 @@ class SimpleBenchmark:
         
         # Save report
         with open(output_file, 'w') as f:
-            json.dump(report, f, indent=2)
+            json.dump(report, f, indent=2, default=convert_numpy_types)
         
         # Print summary
         self._print_summary(report)

@@ -10,6 +10,16 @@ import argparse
 import numpy as np
 from typing import List, Dict, Tuple
 
+def convert_numpy_types(obj):
+    """Convert numpy types to native Python types for JSON serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f'Object of type {obj.__class__.__name__} is not JSON serializable')
+
 class SimpleAnalyzer:
     def __init__(self):
         pass
@@ -239,7 +249,7 @@ def main():
     # Save JSON output if requested
     if args.output:
         with open(args.output, 'w') as f:
-            json.dump(analysis, f, indent=2)
+            json.dump(analysis, f, indent=2, default=convert_numpy_types)
         if not args.quiet:
             print(f"Analysis saved to {args.output}")
     

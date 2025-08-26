@@ -1,0 +1,269 @@
+#include "Compressor.h"
+
+Compressor::Compressor()
+{
+}
+
+Compressor::~Compressor() {}
+
+void Compressor::compressParentBlock()
+{
+
+    std::vector<std::vector<std::vector<std::vector<char>>>> parent_blocks = {
+        { // Block 0
+         {// Slice 0
+          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
+          {'o', 'o', 't', 't', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
+         {// Slice 1
+          {'s', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'s', 's', 'o', 'o', 'o', 'o', 'o', 'o'}}},
+        { // Block 1
+         {// Slice 0
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 't', 't', 't'},
+          {'o', 'o', 'o', 'o', 't', 't', 't', 't'},
+          {'o', 'o', 'o', 'o', 't', 't', 't', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 't', 't', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 't', 't'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
+         {// Slice 1
+          {'o', 'o', 'o', 'o', 'o', 's', 's', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 's', 's'},
+          {'o', 'o', 'o', 'o', 't', 't', 't', 't'},
+          {'o', 'o', 'o', 'o', 't', 's', 's', 's'},
+          {'o', 'o', 'o', 'o', 'o', 't', 't', 't'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 't', 't'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 's', 's', 'o'}}},
+        { // Block 2
+         {// Slice 0
+          {'o', 't', 't', 't', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 't', 't', 't', 't', 'o'},
+          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
+         {// Slice 1
+          {'o', 'o', 't', 't', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 's', 't', 't', 'o'},
+          {'o', 'o', 'o', 'o', 't', 't', 't', 'o'},
+          {'o', 'o', 'o', 'o', 't', 's', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 's', 's', 'o', 'o'}}},
+        { // Block 3
+         {// Slice 0
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
+         {// Slice 1
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
+          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}}}};
+    /*
+        oo s o
+        oo o o
+        ss o o
+        oooo
+    */
+    // processParentBlocks(parent_blocks[0]);
+    //  printParentBlock(parent_blocks);
+}
+void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
+{
+    for (size_t block_idx = 0; block_idx < parent_blocks.size(); ++block_idx)
+    {
+        std::cout << "=== Block " << block_idx << " ===\n";
+
+        for (size_t slice_idx = 0; slice_idx < parent_blocks[block_idx].size(); ++slice_idx)
+        {
+            std::cout << "Slice " << slice_idx << ":\n";
+            for (const auto &row : parent_blocks[block_idx][slice_idx])
+            {
+                for (char cell : row)
+                {
+                    printf("%c", cell);
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+        printf("-----\n");
+    }
+}
+
+void Compressor::processParentBlocks(ParentBlock *parent_block)
+{
+    int z = 0;
+    while (z < *parent_z)
+    {
+        /*
+        int parent_x = sub_blocks[0][0].size();
+        int parent_y = sub_blocks[0].size();
+        int parent_z = sub_blocks.size();
+        */
+
+        // marks visited cells
+        std::vector<std::vector<std::vector<bool>>> visited(
+            *parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
+
+        for (int y = 0; y < *parent_y; y++)
+        {
+            for (int x = 0; x < *parent_x; x++)
+            {
+                if (visited[z][y][x])
+                    // from x = 1 -> x = 7 && y = 0 -> y = 7 because these are already visited
+                    continue;
+
+                char target = parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + z];
+
+                // Determine max size in X
+                int maxX = x; // 0 1 7
+                while (maxX < *parent_x && parent_block->block[(maxX * *parent_y * *parent_z) + (y * *parent_z) + z] == target && !visited[z][y][maxX])
+                    maxX++; // 1 7
+
+                // Determine max size in Y
+                int maxY = y;         // 0
+                bool uniformY = true; // checks if character in the y direction whether the target is same or not
+                while (maxY < *parent_y && uniformY)
+                {
+                    // x = 0 -> maxX = 1; 1 < 7
+                    for (int xi = x; xi < maxX; xi++)
+                    {
+                        // x1 = 1
+                        if (parent_block->block[(xi * *parent_y * *parent_z) + (maxY * *parent_z) + z] != target || visited[z][maxY][xi])
+                        {
+                            uniformY = false;
+                            break;
+                        }
+                    }
+                    if (uniformY)
+                        maxY++;
+                }
+
+                // Determine max size in Z
+                int maxZ = z;
+                bool uniformZ = true;
+                // checks the subblocks, are they uniform and did we alreadly visit them.
+                while (maxZ < *parent_z && uniformZ)
+                {
+                    // y = 0 maxY = 1
+                    for (int yi = y; yi < maxY; yi++)
+                    {
+                        // x = 0 MaxX = 1
+                        for (int xi = x; xi < maxX; xi++)
+                        {
+                            if (parent_block->block[(xi * *parent_y * *parent_z) + (yi * *parent_z) + maxZ] != target || visited[maxZ][yi][xi])
+                            {
+                                uniformZ = false;
+                                break;
+                            }
+                        }
+                        if (!uniformZ)
+                            break;
+                    }
+                    if (uniformZ)
+                        // maxZ = 2 /*breaks the loop
+                        maxZ++;
+                }
+
+                // Mark all as visited
+                for (int zz = z; zz < maxZ; zz++)
+                    for (int yy = y; yy < maxY; yy++)
+                        for (int xx = x; xx < maxX; xx++)
+                            // storing the character into the visited array
+                            visited[zz][yy][xx] = true;
+
+                // Output the packed block
+                SubBlock *sub_block = (SubBlock*)malloc(sizeof(SubBlock));
+                sub_block->x = parent_block->x + x;
+                sub_block->y = parent_block->y + y;
+                sub_block->z = parent_block->z + z;
+                sub_block->l = maxX - x;
+                sub_block->w = maxY - y;
+                sub_block->h = maxZ - z;
+                sub_block->tag = target;
+                
+                output_stream->push((void **)&sub_block);
+                //printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tagTable)[target].c_str());
+            }
+            // x += 1; x = 1; x = 2
+        }
+        // y = 1
+        z++;
+    }
+    free(parent_block);
+}
+
+/*
+printf("Parent Block: %p\n", parent_block);
+    for (int z = 0; z < *parent_z; z++) {
+        for (int y = 0; y < *parent_y; y++) {
+            for (int x = 0; x < *parent_x; x++) {
+                printf("%c", parent_block[(x * *parent_y * *parent_z) + (y * *parent_z) + z]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+}
+*/
+
+void Compressor::compressStream()
+{
+    ParentBlock *parent_block;
+    char *null_ptr = NULL;
+
+    do {
+        input_stream->pop((void **)&parent_block);
+
+        if (parent_block == NULL) {
+            output_stream->push((void **)&null_ptr);
+            break;
+        }
+
+        // else block is non-uniform, do compression
+        processParentBlocks(parent_block);
+        // printf("%c\n", block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + 0]); // block[0][0][0]
+
+    } while (parent_block != NULL);
+}
+
+void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table)
+{
+    parent_x = c_parent_x;
+    parent_y = c_parent_y;
+    parent_z = c_parent_z;
+    tagTable = tag_table;
+}
+
+void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
+{
+    input_stream = c_input_stream;
+    output_stream = c_output_stream;
+}

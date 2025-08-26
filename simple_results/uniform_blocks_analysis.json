@@ -4,4 +4,43 @@
     32,
     32
   ],
-  "original_voxels": 
+  "original_voxels": 32768,
+  "compressed_blocks": 512,
+  "compression_ratio": 64.0,
+  "volume_efficiency": 4.5,
+  "block_statistics": {
+    "average_size": 288.0,
+    "max_size": 512,
+    "min_size": 64,
+    "std_deviation": 146.64242223858687
+  },
+  "material_distribution": {
+    "ore": {
+      "count": 96,
+      "volume": 27648
+    },
+    "nickel": {
+      "count": 112,
+      "volume": 32256
+    },
+    "titanium": {
+      "count": 152,
+      "volume": 43776
+    },
+    "sulfur": {
+      "count": 152,
+      "volume": 43776
+    }
+  },
+  "size_distribution": {
+    "small_blocks": 0,
+    "medium_blocks": 64,
+    "large_blocks": 448
+  },
+  "compression_quality": "Excellent",
+  "file_sizes": {
+    "original_bytes": 33875,
+    "compressed_bytes": 10608,
+    "file_compression_ratio": 3.193344645550528
+  }
+}
