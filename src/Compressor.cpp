@@ -1,11 +1,18 @@
 #include "Compressor.h"
 
+<<<<<<< HEAD
 Compressor::Compressor()
 {
 }
 
 Compressor::~Compressor() {}
 
+=======
+Compressor::Compressor() {}
+Compressor::~Compressor() {}
+
+// -----------UNWANTED FUNCTIONS------------- //
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
 void Compressor::compressParentBlock()
 {
 
@@ -117,9 +124,67 @@ void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std:
         printf("-----\n");
     }
 }
+<<<<<<< HEAD
 
 void Compressor::processParentBlocks(ParentBlock *parent_block)
 {
+=======
+// -----------ENDS HERE-------- ------------- //
+
+// -----------MAIN FUNCTIONS-------- -------- //
+void Compressor::OctreeCompression(ParentBlock *parent_block)
+{
+    // Check if the parent block is uniform first
+    char uniformTag;
+    if (octTree.isUniform(parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z, uniformTag))
+    {
+        // If uniform, output a single block
+        SubBlock *sb = (SubBlock *)malloc(sizeof(SubBlock));
+        sb->x = parent_block->x;
+        sb->y = parent_block->y;
+        sb->z = parent_block->z;
+        sb->l = *parent_x;
+        sb->w = *parent_y;
+        sb->h = *parent_z;
+        sb->tag = uniformTag;
+
+        output_stream->push((void **)&sb);
+        free(parent_block);
+        return;
+    }
+
+    // Only use octree for non-uniform blocks
+    OctTreeNode *root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
+
+    std::vector<SubBlock> subBlocks;
+    octTree.collectSubBlocks(root, subBlocks, tagTable, parent_block->x, parent_block->y, parent_block->z);
+
+    std::vector<SubBlock> mergedBlocks = octTree.mergeSubBlocks(subBlocks);
+
+    // Limit the number of output blocks (safety check)
+    const size_t MAX_BLOCKS_PER_PARENT = 256; // Adjust as needed
+    if (mergedBlocks.size() > MAX_BLOCKS_PER_PARENT)
+    {
+        // Fall back to simpler compression if octree produces too many blocks
+        processParentBlocks(parent_block);
+    }
+    else
+    {
+        for (auto &sb : mergedBlocks)
+        {
+            SubBlock *out = (SubBlock *)malloc(sizeof(SubBlock));
+            *out = sb;
+            output_stream->push((void **)&out);
+        }
+    }
+
+    octTree.deleteTree(root);
+    free(parent_block);
+}
+void Compressor::processParentBlocks(ParentBlock *parent_block)
+{
+    // std::cout << parent_block->block-
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
     int z = 0;
     while (z < *parent_z)
     {
@@ -201,7 +266,11 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
                             visited[zz][yy][xx] = true;
 
                 // Output the packed block
+<<<<<<< HEAD
                 SubBlock *sub_block = (SubBlock*)malloc(sizeof(SubBlock));
+=======
+                SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
                 sub_block->x = parent_block->x + x;
                 sub_block->y = parent_block->y + y;
                 sub_block->z = parent_block->z + z;
@@ -209,9 +278,15 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
                 sub_block->w = maxY - y;
                 sub_block->h = maxZ - z;
                 sub_block->tag = target;
+<<<<<<< HEAD
                 
                 output_stream->push((void **)&sub_block);
                 //printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tagTable)[target].c_str());
+=======
+
+                output_stream->push((void **)&sub_block);
+                // printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tagTable)[target].c_str());
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
             }
             // x += 1; x = 1; x = 2
         }
@@ -221,6 +296,7 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
     free(parent_block);
 }
 
+<<<<<<< HEAD
 /*
 printf("Parent Block: %p\n", parent_block);
     for (int z = 0; z < *parent_z; z++) {
@@ -234,19 +310,33 @@ printf("Parent Block: %p\n", parent_block);
 }
 */
 
+=======
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
 void Compressor::compressStream()
 {
     ParentBlock *parent_block;
     char *null_ptr = NULL;
+<<<<<<< HEAD
 
     do {
         input_stream->pop((void **)&parent_block);
 
         if (parent_block == NULL) {
+=======
+    int block_count = 0;
+
+    do
+    {
+        input_stream->pop((void **)&parent_block);
+
+        if (parent_block == NULL)
+        {
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
             output_stream->push((void **)&null_ptr);
             break;
         }
 
+<<<<<<< HEAD
         // else block is non-uniform, do compression
         processParentBlocks(parent_block);
         // printf("%c\n", block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + 0]); // block[0][0][0]
@@ -255,15 +345,49 @@ void Compressor::compressStream()
 }
 
 void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table)
+=======
+        block_count++;
+
+        // Safety check: if we've processed too many blocks, use simpler algorithm
+        if (block_count > 10000)
+        { // Adjust this threshold as needed
+            processParentBlocks(parent_block);
+        }
+        else
+        {
+            OctreeCompression(parent_block);
+        }
+
+    } while (parent_block != NULL);
+}
+// -----------ENDS HERE-------- ------------- //
+
+// -----------HELPER FUNCTIONS ------------- //
+void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table, int mx_count, int my_count, int mz_count)
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
 {
     parent_x = c_parent_x;
     parent_y = c_parent_y;
     parent_z = c_parent_z;
+<<<<<<< HEAD
     tagTable = tag_table;
 }
 
+=======
+
+    this->mx = mx;
+    this->my = my;
+    this->mz = mz;
+    tagTable = tag_table;
+}
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
 void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
 {
     input_stream = c_input_stream;
     output_stream = c_output_stream;
+<<<<<<< HEAD
 }
+=======
+}
+// -----------ENDS HERE-------- ------------- //
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e

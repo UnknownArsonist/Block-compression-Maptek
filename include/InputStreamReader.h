@@ -46,5 +46,9 @@ public:
     void getLegendFromStream(std::unordered_map<char, std::string> *legend);
     // void startProcessing();
 
+<<<<<<< HEAD
     void printHeader();
+=======
+    void printHeader(FILE *out);
+>>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
 };
