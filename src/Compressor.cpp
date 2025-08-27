@@ -1,12 +1,13 @@
-#include "Compressor.h"
+#include "StreamProcessor.h"
+#include "OctTreeNode.h"
 
-Compressor::Compressor()
+StreamProcessor::Compressor::Compressor()
 {
 }
 
-Compressor::~Compressor() {}
+StreamProcessor::Compressor::~Compressor() {}
 
-void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
+void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
 {
     for (size_t block_idx = 0; block_idx < parent_blocks.size(); ++block_idx)
     {
@@ -31,9 +32,10 @@ void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std:
 // -----------ENDS HERE-------- ------------- //
 
 // -----------MAIN FUNCTIONS-------- -------- //
-void Compressor::OctreeCompression(ParentBlock *parent_block)
+void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
 {
     // Check if the parent block is uniform first
+    OctTreeNode octTree;
     char uniformTag;
     if (octTree.isUniform(parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z, uniformTag))
     {
@@ -56,7 +58,7 @@ void Compressor::OctreeCompression(ParentBlock *parent_block)
     OctTreeNode *root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
 
     std::vector<SubBlock> subBlocks;
-    octTree.collectSubBlocks(root, subBlocks, tagTable, parent_block->x, parent_block->y, parent_block->z);
+    octTree.collectSubBlocks(root, subBlocks, tag_table, parent_block->x, parent_block->y, parent_block->z);
 
     std::vector<SubBlock> mergedBlocks = octTree.mergeSubBlocks(subBlocks);
 
@@ -80,7 +82,7 @@ void Compressor::OctreeCompression(ParentBlock *parent_block)
     octTree.deleteTree(root);
     free(parent_block);
 }
-void Compressor::processParentBlocks(ParentBlock *parent_block)
+void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 {
     // std::cout << parent_block->block-
     int z = 0;
@@ -184,7 +186,7 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
     free(parent_block);
 }
 
-void Compressor::compressStream()
+void StreamProcessor::Compressor::compressStream()
 {
     ParentBlock *parent_block;
     char *null_ptr = NULL;
@@ -203,22 +205,33 @@ void Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
-        OctreeCompression(parent_block);
+        processParentBlocks(parent_block);
 
     } while (parent_block != NULL);
 }
 // -----------ENDS HERE-------- ------------- //
 
 // -----------HELPER FUNCTIONS ------------- //
-void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table)
+void StreamProcessor::Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table)
 {
     parent_x = c_parent_x;
     parent_y = c_parent_y;
     parent_z = c_parent_z;
 
-    tagTable = tag_table;
+    tag_table = c_tag_table;
 }
-void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
+
+void StreamProcessor::Compressor::passValues(StreamProcessor *sp) {
+    
+    parent_x = &(sp->parent_x);
+    parent_y = &(sp->parent_y);
+    parent_z = &(sp->parent_z);
+    tag_table = &(sp->tag_table);
+    input_stream = (sp->inputToCompressorBuffer);
+    output_stream = (sp->compressorToOutputBuffer);
+}
+
+void StreamProcessor::Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
 {
     input_stream = c_input_stream;
     output_stream = c_output_stream;
