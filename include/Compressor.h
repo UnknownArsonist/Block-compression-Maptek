@@ -19,6 +19,7 @@ private:
     StreamBuffer *output_stream;
     OctTreeNode octTree;
     std::unordered_map<char, std::string> *tagTable;
+    std::vector<SubBlock *> blocks;
 
 public:
     Compressor();
@@ -28,7 +29,7 @@ public:
     void OctreeCompression(ParentBlock *parent_block);
 
     bool isUniform(ParentBlock *parent_block, int z_index);
-    void blockRect(ParentBlock *parent_block, int x_index, int y_index, int z_index, char target);
+    void blockRect(ParentBlock *parent_block, int x_index, int y_index, int z_index);
     void base_algorithms(ParentBlock *parent_block);
 
     // helper function
