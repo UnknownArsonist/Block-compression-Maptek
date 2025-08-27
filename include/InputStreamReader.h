@@ -36,6 +36,7 @@ public:
 
     // Function declarations
     void processStream();
+    void processStream_test(const std::string& alg);
 
     void passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table);
     void passBuffers(StreamBuffer *output_stream);
@@ -46,9 +47,5 @@ public:
     void getLegendFromStream(std::unordered_map<char, std::string> *legend);
     // void startProcessing();
 
-<<<<<<< HEAD
     void printHeader();
-=======
-    void printHeader(FILE *out);
->>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
 };
