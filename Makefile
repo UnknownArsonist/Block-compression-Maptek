@@ -1,24 +1,24 @@
 ########################################################################
-####################### Makefile for Windows ##########################
+####################### Makefile for Linux ############################
 ########################################################################
 
 # Compiler settings
-CC = x86_64-w64-mingw32-g++        # 64-bit Windows compiler
-CXXFLAGS = -std=c++11 -Wall -Iinclude -static
-LDFLAGS = 
+CC = g++                        # Linux compiler
+CXXFLAGS = -std=c++11 -Wall -Iinclude -pthread
+LDFLAGS = -pthread
 
 # Makefile settings
 APPNAME = myapp
 EXT = .cpp
 SRCDIR = ./src
 OBJDIR = ./obj
-EXE = .exe
+EXE = 
 
 ############## Do not change anything from here downwards! #############
 SRC = $(wildcard $(SRCDIR)/*$(EXT))
 OBJ = $(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)/%.o)
 
-# Windows-compatible remove command
+# Linux remove command
 RM = rm -f
 
 ########################################################################
@@ -29,7 +29,7 @@ all: $(APPNAME)$(EXE)
 
 # Create obj directory if it doesn't exist
 $(OBJDIR):
-	@if not exist "$(OBJDIR)" mkdir "$(OBJDIR)"
+	mkdir -p $(OBJDIR)
 
 # Build the application
 $(APPNAME)$(EXE): $(OBJDIR) $(OBJ)
@@ -44,9 +44,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%$(EXT)
 
 # Clean complete project
 clean:
-	$(RM) $(OBJDIR)\*.o
+	$(RM) $(OBJDIR)/*.o
 	$(RM) $(APPNAME)$(EXE)
 
 # Clean only object files
 cleandep:
-	$(RM) $(OBJDIR)\*.o
+	$(RM) $(OBJDIR)/*.o

@@ -27,6 +27,10 @@ public:
     // algorithms
     void OctreeCompression(ParentBlock *parent_block);
 
+    bool isUniform(ParentBlock *parent_block, int z_index);
+    void blockRect(ParentBlock *parent_block, int x_index, int y_index, int z_index, char target);
+    void base_algorithms(ParentBlock *parent_block);
+
     // helper function
     void compressParentBlock();
     void processParentBlocks(ParentBlock *parent_block);

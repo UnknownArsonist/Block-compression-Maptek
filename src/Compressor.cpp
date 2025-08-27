@@ -1,4 +1,5 @@
 #include "Compressor.h"
+#include <unistd.h>
 
 Compressor::Compressor() {}
 Compressor::~Compressor() {}
@@ -271,6 +272,82 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
     free(parent_block);
 }
 
+void Compressor::base_algorithms(ParentBlock *parent_block)
+{
+    int zi;
+    zi = 0;
+    while (zi < *parent_z)
+    {
+        if (isUniform(parent_block, zi))
+        {
+            char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + zi];
+            SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+            sub_block->x = parent_block->x;
+            sub_block->y = parent_block->y;
+            sub_block->z = parent_block->z;
+            sub_block->l = *parent_x;
+            sub_block->w = *parent_y;
+            sub_block->h = zi;
+            sub_block->tag = target;
+            // output_stream->push((void **)&sub_block);
+        }
+        else
+        {
+            char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + zi];
+            /*
+
+            SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+            sub_block->x = parent_block->x;
+            sub_block->y = parent_block->y;
+            sub_block->z = parent_block->z;
+            sub_block->l = *parent_x;
+            sub_block->w = *parent_y;
+            sub_block->h = zi;
+            sub_block->tag = target;
+            output_stream->push((void **)&sub_block);
+            */
+            blockRect(parent_block, parent_block->x, 0, zi, target);
+        }
+        zi++;
+    }
+}
+
+void Compressor::blockRect(ParentBlock *parent_block, int x_index, int y_index, int z_index, char target)
+{
+    // printf("%c : %d\n", target, x_index);
+    /*
+    int j = x_index + 1;
+    int k = y_index + 1;
+    // if the character is isolated
+    if (j < *parent_x && k < *parent_y &&
+        target != parent_block->block[(j * *parent_y * *parent_z) + (0 * *parent_z) + z_index] &&
+        target != parent_block->block[(0 * *parent_y * *parent_z) + (k * *parent_z) + z_index])
+    {
+        SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+        sub_block->x = parent_block->x;
+        sub_block->y = parent_block->y;
+        sub_block->z = parent_block->z;
+        sub_block->l = *parent_x;
+        sub_block->w = *parent_y;
+        sub_block->h = z_index;
+        sub_block->tag = target;
+        // output_stream->push((void **)&sub_block);
+    }
+    int lenX = 0;
+    int lenY = 0;
+    int maxX;
+    */
+    std::vector<SubBlock> blocks;
+    for (int y = 0; y < *parent_x; y++)
+    {
+        for (int x = 0; x < *parent_y; x++)
+        {
+            if (target)
+        }
+        printf("\n");
+    }
+}
+
 void Compressor::compressStream()
 {
     ParentBlock *parent_block;
@@ -290,6 +367,7 @@ void Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
+        /*
         if (block_count > 10000)
         { // Adjust this threshold as needed
             processParentBlocks(parent_block);
@@ -298,12 +376,30 @@ void Compressor::compressStream()
         {
             OctreeCompression(parent_block);
         }
+            */
+        base_algorithms(parent_block);
 
     } while (parent_block != NULL);
 }
 // -----------ENDS HERE-------- ------------- //
 
 // -----------HELPER FUNCTIONS ------------- //
+bool Compressor::isUniform(ParentBlock *parent_block, int i)
+{
+    char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + i];
+    for (int y = 0; y < *parent_y; y++)
+    {
+        for (int x = 0; x < *parent_x; x++)
+        {
+            if (target != parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + i])
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table, int mx_count, int my_count, int mz_count)
 {
     parent_x = c_parent_x;
