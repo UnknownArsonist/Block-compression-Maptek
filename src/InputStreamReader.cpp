@@ -96,45 +96,32 @@ static void processStream_line(FILE *input_stream, StreamBuffer *output_stream, 
     //printf(": %d\n", num_parent_blocks);
     memset(parent_blocks, 0, sizeof(ParentBlock*) * num_parent_blocks);
 
-    std::string line;
+    char line[*x_count+1];
     int x = 0;
     int y = 0;
     int z = 0;
 
-    while (std::getline(std::cin, line)) {
-        if (line == "") {
+    while (std::cin.getline(line, sizeof(line))) {
+        //printf("%s\n", line);
+        if (*line == '\0') {
             y = 0;
             z++;
             continue;
         }
-        for (int i = 0; i < (int)line.length(); i++) {
-            char ch = line[i];
-            if (ch != '\r') {
-                int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y) + (*x_count / *parent_x) * (*y_count / *parent_y) * (z / *parent_z);
-                if (parent_blocks[current_parent_block] == NULL) {
-                    parent_blocks[current_parent_block] = new ParentBlock{x, y, z, (char *)malloc(*parent_x * *parent_y * *parent_z)};
-                }
+        for (int i = 0; i < (*x_count / *parent_x); i++) {
+            int current_parent_block = (i) + (*x_count / *parent_x) * (y / *parent_y) + (*x_count / *parent_x) * (*y_count / *parent_y) * (z / *parent_z);
+            if (parent_blocks[current_parent_block] == NULL) {
+                parent_blocks[current_parent_block] = new ParentBlock{x, y, z, (char *)malloc(*parent_x * *parent_y * *parent_z)};
+            }
+            
+            int parent_relative_y = y % *parent_y;
+            int parent_relative_z = z % *parent_z;
 
-                int parent_relative_x = x % *parent_x;
-                int parent_relative_y = y % *parent_y;
-                int parent_relative_z = z % *parent_z;
-                //printf("[%d] (%d, %d, %d), (%d, %d, %d): %c\n", current_parent_block, x, y, z, parent_relative_x, parent_relative_y, parent_relative_z, ch);
-
-                parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
-                
-                if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
-                    // printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
-                    /*
-                    if (uniform[current_parent_block]) {
-                        free(parent_blocks[current_parent_block]->block);
-                        parent_blocks[current_parent_block]->block = NULL;
-                    }
-                    */
-                    //output_stream->push((void **)&parent_blocks[current_parent_block]);
-                    parent_blocks[current_parent_block] = NULL;
-                    // output_stream->printBuffer();
-                }
-                x++;
+            memcpy(&(parent_blocks[current_parent_block]->block[(parent_relative_y * *parent_x) + (parent_relative_z * *parent_x * *parent_y)]), &(line[(i * *parent_x)]), *parent_x);
+            if (parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
+                //output_stream->push((void **)&parent_blocks[current_parent_block]);
+                free(parent_blocks[current_parent_block]);
+                parent_blocks[current_parent_block] = NULL;
             }
         }
         x = 0;
@@ -186,6 +173,7 @@ static void processStream_char(FILE *input_stream, StreamBuffer *output_stream, 
                 }
                 */
                 //output_stream->push((void **)&parent_blocks[current_parent_block]);
+                free(parent_blocks[current_parent_block]);
                 parent_blocks[current_parent_block] = NULL;
                 // output_stream->printBuffer();
             }
