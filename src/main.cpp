@@ -6,7 +6,6 @@
 int main()
 {
     StreamProcessor processor;
-    
     processor.setVerbose(true);
     // Enable the actual compression pipeline
     processor.start();
