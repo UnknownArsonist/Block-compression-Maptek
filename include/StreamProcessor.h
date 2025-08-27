@@ -1,18 +1,30 @@
 #pragma once
-#include "InputStreamReader.h"
 #include "Compressor.h"
 #include "StreamBuffer.h"
 #include "DisplayOutput.h"
-<<<<<<< HEAD
+#include <chrono>
 
 class StreamProcessor {
+    public:
+        class InputStreamReader;
+
+        StreamProcessor();
+        ~StreamProcessor();
+
+        void setVerbose(bool c_v);
+
+        void setup();
+        void start();
+        void end();
+
     private:
-        InputStreamReader inputStreamReader;
+        InputStreamReader *inputStreamReader;
         Compressor compressor;
         DisplayOutput displayOutput;
         StreamBuffer inputToCompressorBuffer;
         StreamBuffer compressorToOutputBuffer;
 
+        std::chrono::time_point<std::chrono::high_resolution_clock> started;
         std::thread inputStreamReaderThread;
         std::thread compressorThread;
         std::thread displayOutputThread;
@@ -31,62 +43,52 @@ class StreamProcessor {
         // Tag table to map characters to strings
         std::unordered_map<char, std::string> tag_table;
 
+};
+
+class StreamProcessor::InputStreamReader {
+    private:
+        // Vectors to hold dimensions and tokens
+        // vector<string> dims;
+
+        // Header line and other variables
+        // string header_line;
+        // vector<string> slice;
+
+        // Dimensions of the 3D block
+        int *x_count;
+        int *y_count;
+        int *z_count;
+
+        // Parent Block dimensions
+        int *parent_x;
+        int *parent_y;
+        int *parent_z;
+
+        FILE *input_stream;
+        StreamBuffer *output_stream;
+
+        // Tag table to map characters to strings
+        std::unordered_map<char, std::string> *tag_table;
+
     public:
-        StreamProcessor();
-        ~StreamProcessor();
+        // Constructor and Destructor
+        InputStreamReader();
+        InputStreamReader(FILE *in);
+        ~InputStreamReader();
 
-        void setVerbose(bool c_v);
+        // Function declarations
+        void processStream();
+        void processStream_test(const std::string& alg);
 
-        void setup();
-        void start();
-        void end();
-        
-        InputStreamReader *getInputStreamReader();
-        Compressor *getCompressor();
-        DisplayOutput *getDisplayOutput();
-=======
-#include <chrono>
+        void passValues(StreamProcessor *sp);
+        void passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table);
+        void passBuffers(StreamBuffer *output_stream);
+        void getHeader();
+        void getCommaSeparatedValuesFromStream();
+        template <typename T, typename... Args>
+        void getCommaSeparatedValuesFromStream(T *value, Args... args);
+        void getLegendFromStream(std::unordered_map<char, std::string> *legend);
+        // void startProcessing();
 
-class StreamProcessor
-{
-private:
-    InputStreamReader inputStreamReader;
-    Compressor compressor;
-    DisplayOutput displayOutput;
-    StreamBuffer inputToCompressorBuffer;
-    StreamBuffer compressorToOutputBuffer;
-
-    std::thread inputStreamReaderThread;
-    std::thread compressorThread;
-    std::thread displayOutputThread;
-    std::chrono::time_point<std::chrono::system_clock> started;
-    bool verbose = false;
-
-    // Dimensions of the 3D block
-    int x_count;
-    int y_count;
-    int z_count;
-
-    // Parent Block dimensions
-    int parent_x;
-    int parent_y;
-    int parent_z;
-
-    // Tag table to map characters to strings
-    std::unordered_map<char, std::string> tag_table;
-
-public:
-    StreamProcessor();
-    ~StreamProcessor();
-
-    void setVerbose(bool c_v);
-
-    void setup();
-    void start();
-    void end();
-
-    InputStreamReader *getInputStreamReader();
-    Compressor *getCompressor();
-    DisplayOutput *getDisplayOutput();
->>>>>>> 7a84fbe7280b4e0869f090e21fdebabaeccc7e4e
+        void printHeader();
 };
