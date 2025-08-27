@@ -1,22 +1,29 @@
-#include "InputStreamReader.h"
+#include "StreamProcessor.h"
 
 // Constructor and Destructor
-InputStreamReader::InputStreamReader(FILE *in)
-{
+StreamProcessor::InputStreamReader::InputStreamReader(FILE *in) {
     input_stream = in;
 }
 
-InputStreamReader::InputStreamReader() : InputStreamReader(stdin)
-{
+StreamProcessor::InputStreamReader::InputStreamReader() : InputStreamReader(stdin) {
 }
 
-InputStreamReader::~InputStreamReader()
-{
+StreamProcessor::InputStreamReader::~InputStreamReader() {
     // Destructor implementation
 }
 
-void InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table)
-{
+void StreamProcessor::InputStreamReader::passValues(StreamProcessor *sp) {
+    x_count = &sp->x_count;
+    y_count = &sp->y_count;
+    z_count = &sp->z_count;
+    parent_x = &sp->parent_x;
+    parent_y = &sp->parent_y;
+    parent_z = &sp->parent_z;
+    tag_table = &sp->tag_table;
+    output_stream = &sp->inputToCompressorBuffer;
+}
+
+void StreamProcessor::InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table) {
     x_count = c_x_count;
     y_count = c_y_count;
     z_count = c_z_count;
@@ -26,23 +33,22 @@ void InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_coun
     tag_table = c_tag_table;
 }
 
-void InputStreamReader::passBuffers(StreamBuffer *c_output_stream)
+void StreamProcessor::InputStreamReader::passBuffers(StreamBuffer *c_output_stream)
 {
     output_stream = c_output_stream;
 }
 
-void InputStreamReader::getHeader()
+void StreamProcessor::InputStreamReader::getHeader()
 {
     getCommaSeparatedValuesFromStream(x_count, y_count, z_count, parent_x, parent_y, parent_z);
     getLegendFromStream(tag_table);
 }
 
 // do we need this function?
-void InputStreamReader::getCommaSeparatedValuesFromStream() {}
+void StreamProcessor::InputStreamReader::getCommaSeparatedValuesFromStream() {}
 
 template <typename T, typename... Args>
-void InputStreamReader::getCommaSeparatedValuesFromStream(T *value, Args... args)
-{
+void StreamProcessor::InputStreamReader::getCommaSeparatedValuesFromStream(T *value, Args... args) {
     char c;
     *value = 0;
     while ((c = getc(input_stream)) != EOF)
@@ -60,8 +66,7 @@ void InputStreamReader::getCommaSeparatedValuesFromStream(T *value, Args... args
     getCommaSeparatedValuesFromStream(args...);
 }
 
-void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string> *legend)
-{
+void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string> *legend) {
     char c;
     char key = 0;
     std::string value = "";
@@ -86,46 +91,6 @@ void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string
             }
             n = 0;
         }
-    }
-}
-
-static void processStream_line(FILE *input_stream, StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z) {
-    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y) * (*z_count / *parent_z);
-
-    ParentBlock *parent_blocks[num_parent_blocks];
-    //printf(": %d\n", num_parent_blocks);
-    memset(parent_blocks, 0, sizeof(ParentBlock*) * num_parent_blocks);
-
-    char line[*x_count+1];
-    int x = 0;
-    int y = 0;
-    int z = 0;
-
-    while (std::cin.getline(line, sizeof(line))) {
-        //printf("%s\n", line);
-        if (*line == '\0') {
-            y = 0;
-            z++;
-            continue;
-        }
-        for (int i = 0; i < (*x_count / *parent_x); i++) {
-            int current_parent_block = (i) + (*x_count / *parent_x) * (y / *parent_y) + (*x_count / *parent_x) * (*y_count / *parent_y) * (z / *parent_z);
-            if (parent_blocks[current_parent_block] == NULL) {
-                parent_blocks[current_parent_block] = new ParentBlock{x, y, z, (char *)malloc(*parent_x * *parent_y * *parent_z)};
-            }
-            
-            int parent_relative_y = y % *parent_y;
-            int parent_relative_z = z % *parent_z;
-
-            memcpy(&(parent_blocks[current_parent_block]->block[(parent_relative_y * *parent_x) + (parent_relative_z * *parent_x * *parent_y)]), &(line[(i * *parent_x)]), *parent_x);
-            if (parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
-                //output_stream->push((void **)&parent_blocks[current_parent_block]);
-                free(parent_blocks[current_parent_block]);
-                parent_blocks[current_parent_block] = NULL;
-            }
-        }
-        x = 0;
-        y++;
     }
 }
 
@@ -185,21 +150,16 @@ static void processStream_char(FILE *input_stream, StreamBuffer *output_stream, 
 }
 
 // Function to process the slice of 3D block data
-void InputStreamReader::processStream() {
+void StreamProcessor::InputStreamReader::processStream() {
     processStream_char(input_stream, output_stream, x_count, y_count, z_count, parent_x, parent_y, parent_z);
 }
 
-void InputStreamReader::processStream_test(const std::string& alg) {
-    if (alg == "char") {
-        processStream_char(input_stream, output_stream, x_count, y_count, z_count, parent_x, parent_y, parent_z);
-    } else if (alg == "line") {
-        processStream_line(input_stream, output_stream, x_count, y_count, z_count, parent_x, parent_y, parent_z);
-    }
+void StreamProcessor::InputStreamReader::processStream_test(const std::string& alg) {
+    processStream_char(input_stream, output_stream, x_count, y_count, z_count, parent_x, parent_y, parent_z);
 }
 
 // print the header information and the 3D block data
-void InputStreamReader::printHeader()
-{
+void StreamProcessor::InputStreamReader::printHeader() {
     // print the header information
     printf("%d, %d, %d, %d, %d, %d\n", *x_count, *y_count, *z_count, *parent_x, *parent_y, *parent_z);
     for (const auto &e : *tag_table)
