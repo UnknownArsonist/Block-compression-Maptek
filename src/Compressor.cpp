@@ -85,6 +85,20 @@ void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
 void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 {
     // std::cout << parent_block->block-
+    if (parent_block->block == NULL) {
+        
+        SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+        sub_block->x = parent_block->x;
+        sub_block->y = parent_block->y;
+        sub_block->z = parent_block->z;
+        sub_block->l = *parent_x;
+        sub_block->w = *parent_y;
+        sub_block->h = *parent_z;
+        sub_block->tag = parent_block->first;
+        output_stream->push((void **)&sub_block);
+        free(parent_block);
+        return;
+    }
     int z = 0;
     while (z < *parent_z)
     {

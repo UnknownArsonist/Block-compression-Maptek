@@ -25,4 +25,5 @@ struct ParentBlock {
     int y;
     int z;
     char *block;
+    char first;
 };

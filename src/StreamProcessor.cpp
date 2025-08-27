@@ -35,6 +35,7 @@ void StreamProcessor::start() {
     inputStreamReaderThread = std::thread(&InputStreamReader::processStream, inputStreamReader);
     compressorThread = std::thread(&Compressor::compressStream, compressor);
     displayOutputThread = std::thread(&DisplayOutput::displayBlocks, displayOutput);
+    compressor->compressStream();
 }
 
 void StreamProcessor::end()

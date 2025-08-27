@@ -98,6 +98,8 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y) * (*z_count / *parent_z);
 
     ParentBlock *parent_blocks[num_parent_blocks];
+    int uniform[num_parent_blocks];
+    memset(uniform, 1, sizeof(int) * num_parent_blocks);
     //printf(": %d\n", num_parent_blocks);
     memset(parent_blocks, 0, sizeof(ParentBlock*) * num_parent_blocks);
 
@@ -119,7 +121,7 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
         } else if (ch != '\r') {
             int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y) + (*x_count / *parent_x) * (*y_count / *parent_y) * (z / *parent_z);
             if (parent_blocks[current_parent_block] == NULL) {
-                parent_blocks[current_parent_block] = new ParentBlock{x, y, z, (char *)malloc(*parent_x * *parent_y * *parent_z)};
+                parent_blocks[current_parent_block] = new ParentBlock{x, y, z, (char *)malloc(*parent_x * *parent_y * *parent_z), ch};
             }
 
             int parent_relative_x = x % *parent_x;
@@ -128,15 +130,15 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
             // printf("[%d] (%d, %d, %d), (%d, %d, %d): %c\n", current_parent_block, x, y, z, parent_relative_x, parent_relative_y, parent_relative_z, ch);
 
             parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
-            
+            if (ch != parent_blocks[current_parent_block]->first) {
+                uniform[current_parent_block] = 0;
+            }
             if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
                 // printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
-                /*
-                if (uniform[current_parent_block]) {
+                if (uniform[current_parent_block]/* && false */) {
                     free(parent_blocks[current_parent_block]->block);
                     parent_blocks[current_parent_block]->block = NULL;
                 }
-                */
                 output_stream->push((void **)&parent_blocks[current_parent_block]);
                 //free(parent_blocks[current_parent_block]);
                 parent_blocks[current_parent_block] = NULL;
