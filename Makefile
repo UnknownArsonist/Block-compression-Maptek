@@ -35,12 +35,6 @@ all: $(APPNAME)
 $(APPNAME): $(OBJ)
 	$(CC) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-win:
-	$(CC) $(CXXFLAGS) -o myapp.exe src/Compressor.cpp src/DisplayOutput.cpp src/StreamProcessor.cpp src/StreamBuffer.cpp src/OctTreeNode.cpp src/InputStreamReader.cpp src/main.cpp
-
-win-test:
-	$(CC) $(CXXFLAGS) -o myapp_test.exe src/Compressor.cpp src/DisplayOutput.cpp src/StreamProcessor.cpp src/StreamBuffer.cpp src/OctTreeNode.cpp src/InputStreamReader.cpp src/test.cpp
-
 # Includes all .h files
 -include $(DEP)
 

@@ -1,22 +1,21 @@
-#include "StreamBuffer.h"
+#include "StreamProcessor.h"
 
-StreamBuffer::StreamBuffer() {
+StreamProcessor::StreamBuffer::StreamBuffer() {
     size_stored = 0;
 }
 
-StreamBuffer::~StreamBuffer() {
+StreamProcessor::StreamBuffer::~StreamBuffer() {
 }
 
-void StreamBuffer::setSize(int buffer_size) {
+void StreamProcessor::StreamBuffer::setSize(int buffer_size) {
     buffer = (void**)malloc(buffer_size * sizeof(void*));
     buf_size = buffer_size;
     size_stored = 0;
     write_ptr = buffer;
     read_ptr = buffer;
 }
-
-int StreamBuffer::pop(void **buf)
-{
+//TODO error check for when setSize hasnt been called and buffer = NULL
+int StreamProcessor::StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
 
     // Wait until there's data available
@@ -40,8 +39,7 @@ int StreamBuffer::pop(void **buf)
     return 1;
 }
 
-int StreamBuffer::push(void **buf)
-{
+int StreamProcessor::StreamBuffer::push(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
 
     if (buf == NULL)
@@ -70,8 +68,8 @@ int StreamBuffer::push(void **buf)
     size_stored++;
     return 1;
 }
-void StreamBuffer::printBuffer()
-{
+
+void StreamProcessor::StreamBuffer::printBuffer() {
     printf("[");
     for (int i = 0; i < buf_size; i++)
     {

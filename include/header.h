@@ -8,6 +8,7 @@
 #include <thread>
 #include <cstring>
 #include <mutex>
+#include <chrono>
 
 struct SubBlock {
     int x;

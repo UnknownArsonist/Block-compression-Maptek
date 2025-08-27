@@ -13,14 +13,14 @@ StreamProcessor::InputStreamReader::~InputStreamReader() {
 }
 
 void StreamProcessor::InputStreamReader::passValues(StreamProcessor *sp) {
-    x_count = &sp->x_count;
-    y_count = &sp->y_count;
-    z_count = &sp->z_count;
-    parent_x = &sp->parent_x;
-    parent_y = &sp->parent_y;
-    parent_z = &sp->parent_z;
-    tag_table = &sp->tag_table;
-    output_stream = &sp->inputToCompressorBuffer;
+    x_count = &(sp->x_count);
+    y_count = &(sp->y_count);
+    z_count = &(sp->z_count);
+    parent_x = &(sp->parent_x);
+    parent_y = &(sp->parent_y);
+    parent_z = &(sp->parent_z);
+    tag_table = &(sp->tag_table);
+    output_stream = (sp->inputToCompressorBuffer);
 }
 
 void StreamProcessor::InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table) {
@@ -32,8 +32,7 @@ void StreamProcessor::InputStreamReader::passValues(int *c_x_count, int *c_y_cou
     parent_z = c_parent_z;
     tag_table = c_tag_table;
 }
-
-void StreamProcessor::InputStreamReader::passBuffers(StreamBuffer *c_output_stream)
+void StreamProcessor::InputStreamReader::passBuffers(StreamProcessor::StreamBuffer *c_output_stream)
 {
     output_stream = c_output_stream;
 }
@@ -94,7 +93,8 @@ void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<
     }
 }
 
-static void processStream_char(FILE *input_stream, StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z) {
+static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z) {
+
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y) * (*z_count / *parent_z);
 
     ParentBlock *parent_blocks[num_parent_blocks];
@@ -137,8 +137,9 @@ static void processStream_char(FILE *input_stream, StreamBuffer *output_stream, 
                     parent_blocks[current_parent_block]->block = NULL;
                 }
                 */
-                //output_stream->push((void **)&parent_blocks[current_parent_block]);
-                free(parent_blocks[current_parent_block]);
+
+                output_stream->push((void **)&parent_blocks[current_parent_block]);
+                //free(parent_blocks[current_parent_block]);
                 parent_blocks[current_parent_block] = NULL;
                 // output_stream->printBuffer();
             }
@@ -146,7 +147,7 @@ static void processStream_char(FILE *input_stream, StreamBuffer *output_stream, 
             n = 0;
         }
     }
-    //output_stream->push(NULL);
+    output_stream->push(NULL);
 }
 
 // Function to process the slice of 3D block data
