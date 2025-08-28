@@ -180,14 +180,8 @@ void Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
-        if (block_count > 10000)
-        { // Adjust this threshold as needed
-            processParentBlocks(parent_block);
-        }
-        else
-        {
-            OctreeCompression(parent_block);
-        }
+        OctreeCompression(parent_block);
+    
 
     } while (parent_block != NULL);
 }
