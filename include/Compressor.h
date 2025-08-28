@@ -29,10 +29,14 @@ public:
     void OctreeCompression(ParentBlock *parent_block);
 
     bool isUniform(ParentBlock *parent_block, int z_index);
-    void blockRect(ParentBlock *parent_block, int x_index, int y_index, int z_index);
+    void blockRect3D(ParentBlock *pb);
     void base_algorithms(ParentBlock *parent_block);
 
     // helper function
+    static inline char voxel(ParentBlock *pb, int x, int y, int z, int strideX, int strideY) {
+        return pb->block[x * strideX + y * strideY + z];
+    }
+
     void compressParentBlock();
     void processParentBlocks(ParentBlock *parent_block);
     void printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks);

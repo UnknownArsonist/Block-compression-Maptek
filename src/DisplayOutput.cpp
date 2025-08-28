@@ -1,4 +1,4 @@
-#include "DisplayOutput.h"
+#include "../include/DisplayOutput.h"
 
 DisplayOutput::DisplayOutput() {}
 DisplayOutput::~DisplayOutput() {}
