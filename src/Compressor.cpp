@@ -289,7 +289,7 @@ void Compressor::base_algorithms(ParentBlock *parent_block)
             sub_block->w = *parent_y;
             sub_block->h = zi;
             sub_block->tag = target;
-            // output_stream->push((void **)&sub_block);
+            output_stream->push((void **)&sub_block);
         }
         else
         {
@@ -321,37 +321,36 @@ void Compressor::blockRect(ParentBlock *parent_block, int x_index, int y_index, 
         char tag;
     };
 
+    // vector to store full rectangular runs
+    std::vector<Run> filtered;
+
+    // --- Scan horizontal runs ---
     std::vector<Run> horizontalRuns;
-    std::vector<Run> filtered; // vertical-compressed runs
 
-    int parentX = *parent_x;
-    int parentY = *parent_y;
-    int parentZ = *parent_z;
+    char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + z_index];
 
-    // --- Scan horizontal runs per row ---
-    for (int y = 0; y < parentY; y++)
+    for (int y = 0; y < *parent_y; y++)
     {
         int lenX = 0;
         int startX = 0;
-        char target = parent_block->block[(0 * parentY * parentZ) + (y * parentZ) + z_index];
 
-        for (int x = 0; x < parentX; x++)
+        for (int x = 0; x < *parent_x; x++)
         {
-            char current = parent_block->block[(x * parentY * parentZ) + (y * parentZ) + z_index];
+            char current = parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + z_index];
 
             if (current == target)
             {
                 if (lenX == 0)
                     startX = x;
+
                 lenX++;
             }
             else
             {
-                // push horizontal run
                 if (lenX > 0)
-                    horizontalRuns.push_back({startX, y, z_index,
-                                              startX + lenX - 1, y, z_index,
-                                              target});
+                {
+                    horizontalRuns.push_back({startX, y, z_index, startX + lenX - 1, y, z_index, target});
+                }
 
                 // start new run
                 target = current;
@@ -360,11 +359,10 @@ void Compressor::blockRect(ParentBlock *parent_block, int x_index, int y_index, 
             }
         }
 
-        // push last horizontal run in the row
         if (lenX > 0)
-            horizontalRuns.push_back({startX, y, z_index,
-                                      startX + lenX - 1, y, z_index,
-                                      target});
+        {
+            horizontalRuns.push_back({startX, y, z_index, startX + lenX - 1, y, z_index, target});
+        }
     }
 
     // --- Compress vertical runs ---
@@ -377,20 +375,21 @@ void Compressor::blockRect(ParentBlock *parent_block, int x_index, int y_index, 
         {
             Run curr = horizontalRuns[i];
 
-            // same horizontal run and tag → merge vertically
+            // same horizontal run extended vertically
             if (curr.startX == last.startX &&
                 curr.endX == last.endX &&
                 curr.startZ == last.startZ &&
                 curr.tag == last.tag)
             {
-                last.endY = curr.endY;
+                last.endY = curr.endY; // extend vertical run
             }
             else
             {
                 // push completed vertical run
                 filtered.push_back({last.startX, start.startY, last.startZ,
-                                    last.endX, last.endY, last.endZ,
-                                    last.tag});
+                                    last.endX, last.endY, last.endZ, last.tag});
+
+                // start new run
                 start = curr;
                 last = curr;
             }
@@ -398,11 +397,27 @@ void Compressor::blockRect(ParentBlock *parent_block, int x_index, int y_index, 
 
         // push final run
         filtered.push_back({last.startX, start.startY, last.startZ,
-                            last.endX, last.endY, last.endZ,
-                            last.tag});
+                            last.endX, last.endY, last.endZ, last.tag});
     }
 
-    // --- Convert filtered runs to SubBlock and push to output ---
+    for (const auto &r : filtered)
+    {
+        SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+
+        // position of the sub-block = starting coords
+        sub_block->x = parent_block->x + r.startX;
+        sub_block->y = parent_block->y + r.startY;
+        sub_block->z = parent_block->z + r.startZ;
+
+        // sizes = difference between start and end + 1
+        sub_block->l = r.endX - r.startX + 1;
+        sub_block->w = r.endY - r.startY + 1;
+        sub_block->h = r.endZ - r.startZ + 1;
+
+        sub_block->tag = r.tag;
+
+        output_stream->push((void **)&sub_block);
+    }
 }
 
 void Compressor::compressStream()
