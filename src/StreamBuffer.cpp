@@ -18,7 +18,12 @@ void StreamProcessor::StreamBuffer::setSize(int buffer_size) {
 //TODO error check for when setSize hasnt been called and buffer = NULL
 int StreamProcessor::StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
+    if (*read_ptr == NULL && size_stored > 0) {
+        *buf = NULL;
+        return 0;
+    }
 
+    //fprintf(stderr, "Stored: %d / %d\n", size_stored, buf_size);
     // Wait until there's data available
     while (size_stored <= 0)
     {
@@ -29,10 +34,10 @@ int StreamProcessor::StreamBuffer::pop(void **buf) {
 
     *buf = *read_ptr;
     read_ptr++;
+    //fprintf(stderr, "  %p\n", read_ptr);
 
     // Fix: Use modulo arithmetic for circular buffer
-    if (read_ptr >= buffer + buf_size)
-    {
+    if (read_ptr >= &(buffer[buf_size])) {
         read_ptr = buffer;
     }
 
@@ -43,6 +48,7 @@ int StreamProcessor::StreamBuffer::pop(void **buf) {
 int StreamProcessor::StreamBuffer::push(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
 
+    //fprintf(stderr, "  Stored: %d / %d\n", size_stored, buf_size);
     if (buf == NULL)
     {
         char *null_ptr = NULL;
@@ -50,7 +56,7 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
     }
 
     // Wait until there's space available
-    while (size_stored >= buf_size)
+    while (size_stored >= buf_size-1)
     {
         lock.unlock();
         std::this_thread::yield();
@@ -61,7 +67,7 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
     write_ptr++;
 
     // Fix: Use modulo arithmetic for circular buffer
-    if (write_ptr >= buffer + buf_size)
+    if (write_ptr >= &(buffer[buf_size]))
     {
         write_ptr = buffer;
     }

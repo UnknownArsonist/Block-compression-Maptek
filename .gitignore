@@ -1,4 +1,4 @@
 myapp
 myapp.exe
-obj
-.vscode
+obj/*
+.vscode/*
