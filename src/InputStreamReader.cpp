@@ -83,7 +83,7 @@ void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<
             v = 0;
             value.clear();
             n++;
-        } else {
+        } else if (c != ' ') {
             if (v == 0) {
                 key = c;
             } else {
@@ -167,9 +167,9 @@ void StreamProcessor::InputStreamReader::processStream_test(const std::string& a
 // print the header information and the 3D block data
 void StreamProcessor::InputStreamReader::printHeader() {
     // print the header information
-    printf("%d, %d, %d, %d, %d, %d\n", *x_count, *y_count, *z_count, *parent_x, *parent_y, *parent_z);
+    fprintf(stderr, "%d,%d,%d,%d,%d,%d\n", *x_count, *y_count, *z_count, *parent_x, *parent_y, *parent_z);
     for (const auto &e : *tag_table)
     {
-        printf("%c, %s\n", e.first, e.second.c_str());
+        fprintf(stderr, "%c,%s\n", e.first, e.second.c_str());
     }
 }

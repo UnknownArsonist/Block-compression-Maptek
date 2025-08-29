@@ -4,16 +4,16 @@
 */
 
 int main(int argc, char **argv) {
-    int num_compress_threads = 2;
+    int num_compress_threads = 4;
     if (argc > 1) {
         int c = atoi(argv[1]);
-        if (c >= 1 && c <= 4) {
+        if (c >= 1 && c <= 16) {
             num_compress_threads = c;
         }
     }
     StreamProcessor *processor = new StreamProcessor(num_compress_threads);
     
-    processor->setVerbose(true);
+    //processor->setVerbose(true);
     // Enable the actual compression pipeline
     processor->start();
     

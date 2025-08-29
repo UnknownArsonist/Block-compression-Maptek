@@ -8,12 +8,14 @@
 #include <thread>
 #include <cstring>
 #include <mutex>
+#include <condition_variable>
 #include <chrono>
 #ifdef WIN32
 #include <windows.h>
 #endif
 
 struct SubBlock {
+    int pbc;
     int x;
     int y;
     int z;

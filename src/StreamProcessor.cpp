@@ -39,6 +39,8 @@ StreamProcessor::~StreamProcessor() {
 void StreamProcessor::setup() {
     inputStreamReader->passValues(this);
     inputStreamReader->getHeader();
+    if (verbose)
+        inputStreamReader->printHeader();
     compressor->passValues(this);
     displayOutput->passValues(this);
     int itoc_buf_size = (x_count / parent_x) * (y_count / parent_y) * (z_count / parent_z);

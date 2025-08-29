@@ -144,6 +144,12 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         
     private:
         StreamProcessor::StreamBuffer *input_stream;
+        int *x_count;
+        int *y_count;
+        int *z_count;
+        int *parent_x;
+        int *parent_y;
+        int *parent_z;
         std::unordered_map<char, std::string> *tag_table;
         bool verbose = false;
 };
@@ -168,4 +174,6 @@ class StreamProcessor::StreamBuffer {
         int closed_writers;
 
         std::mutex mutex;
+        std::condition_variable write_cond;
+        std::condition_variable read_cond;
 };
