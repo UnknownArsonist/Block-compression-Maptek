@@ -183,13 +183,12 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
         // y = 1
         z++;
     }
-    free(parent_block);
+    delete parent_block;
 }
 
 void StreamProcessor::Compressor::compressStream()
 {
     ParentBlock *parent_block;
-    char *null_ptr = NULL;
     int block_count = 0;
 
     do
@@ -198,7 +197,7 @@ void StreamProcessor::Compressor::compressStream()
 
         if (parent_block == NULL)
         {
-            output_stream->push((void **)&null_ptr);
+            output_stream->push(NULL);
             break;
         }
 

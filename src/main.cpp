@@ -5,15 +5,14 @@
 
 int main()
 {
-    StreamProcessor processor;
+    StreamProcessor *processor = new StreamProcessor(2);
     
-    processor.setVerbose(true);
+    processor->setVerbose(true);
     // Enable the actual compression pipeline
-    processor.start();
+    processor->start();
     
     // Uncomment to test with hardcoded data
     // compressor.compressParentBlock();
-    
-    processor.end();
+    delete processor;
     return 0;
 }

@@ -10,13 +10,14 @@ class StreamProcessor {
         class StreamBuffer;
 
         StreamProcessor();
+        StreamProcessor(int c_num_compressor_threads);
+        StreamProcessor(int c_num_compressor_threads, int c_itoc_buf_size, int c_ctoo_buf_size);
         ~StreamProcessor();
 
         void setVerbose(bool c_v);
 
         void setup();
         void start();
-        void end();
 
     private:
         InputStreamReader *inputStreamReader;
@@ -27,9 +28,10 @@ class StreamProcessor {
 
         std::chrono::time_point<std::chrono::high_resolution_clock> started;
         std::thread inputStreamReaderThread;
-        std::thread compressorThread;
+        std::thread **compressorThreads;
         std::thread displayOutputThread;
         bool verbose = false;
+        int num_compressor_threads;
 
         // Dimensions of the 3D block
         int x_count;
@@ -146,8 +148,9 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
 class StreamProcessor::StreamBuffer {
     public:
         StreamBuffer();
+        StreamBuffer(int c_buf_size);
+        StreamBuffer(int c_buf_size, int c_num_writers);
         ~StreamBuffer();
-        void setSize(int buffer_size);
         int pop(void **buf);
         int push(void **buf);
         void printBuffer();
@@ -158,6 +161,8 @@ class StreamProcessor::StreamBuffer {
         void **read_ptr;
         int buf_size;
         int size_stored;
+        int num_writers;
+        int closed_writers;
 
         std::mutex mutex;
 };

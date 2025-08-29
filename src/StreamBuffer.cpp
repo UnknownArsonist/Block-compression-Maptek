@@ -1,27 +1,23 @@
 #include "StreamProcessor.h"
 
-StreamProcessor::StreamBuffer::StreamBuffer() {
-    size_stored = 0;
-}
-
-StreamProcessor::StreamBuffer::~StreamBuffer() {
-}
-
-void StreamProcessor::StreamBuffer::setSize(int buffer_size) {
-    buffer = (void**)malloc(buffer_size * sizeof(void*));
-    buf_size = buffer_size;
+StreamProcessor::StreamBuffer::StreamBuffer(int c_buf_size, int c_num_writers) {
+    buffer = (void**)malloc(c_buf_size * sizeof(void*));
+    buf_size = c_buf_size;
     size_stored = 0;
     write_ptr = buffer;
     read_ptr = buffer;
+    num_writers = c_num_writers;
+    closed_writers = 0;
+}
+
+StreamProcessor::StreamBuffer::StreamBuffer(int c_buf_size) : StreamBuffer(c_buf_size, 1) {}
+
+StreamProcessor::StreamBuffer::~StreamBuffer() {
 }
 
 //TODO error check for when setSize hasnt been called and buffer = NULL
 int StreamProcessor::StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
-    if (*read_ptr == NULL && size_stored > 0) {
-        *buf = NULL;
-        return 0;
-    }
 
     //fprintf(stderr, "Stored: %d / %d\n", size_stored, buf_size);
     // Wait until there's data available
@@ -30,6 +26,11 @@ int StreamProcessor::StreamBuffer::pop(void **buf) {
         lock.unlock();
         std::this_thread::yield();
         lock.lock();
+    }
+
+    if (*read_ptr == NULL && size_stored > 0) {
+        *buf = NULL;
+        return 0;
     }
 
     *buf = *read_ptr;
@@ -49,10 +50,15 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
 
     //fprintf(stderr, "  Stored: %d / %d\n", size_stored, buf_size);
-    if (buf == NULL)
-    {
-        char *null_ptr = NULL;
-        buf = (void **)&null_ptr;
+    if (buf == NULL) {
+        closed_writers++;
+        fprintf(stderr, "closed: %d / %d\n", closed_writers, num_writers);
+        if (closed_writers >= num_writers) {
+            char *null_ptr = NULL;
+            buf = (void **)&null_ptr;
+        } else {
+            return -1;
+        }
     }
 
     // Wait until there's space available
