@@ -134,6 +134,9 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         ~DisplayOutput();
         void displayBlocks();
         void printSubBlock(SubBlock *sb);
+#ifdef WIN32
+        void printSubBlock(HANDLE hStdout, SubBlock *sb);
+#endif
         void passBuffers(StreamBuffer *c_input_stream);
         void passValues(StreamProcessor *sp);
         void passValues(std::unordered_map<char, std::string> *c_tag_table);
@@ -148,11 +151,11 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
 class StreamProcessor::StreamBuffer {
     public:
         StreamBuffer();
-        StreamBuffer(int c_buf_size);
-        StreamBuffer(int c_buf_size, int c_num_writers);
+        StreamBuffer(int c_num_writers);
         ~StreamBuffer();
         int pop(void **buf);
         int push(void **buf);
+        void setSize(int c_buf_size);
         void printBuffer();
 
     private:

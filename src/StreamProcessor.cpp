@@ -4,8 +4,8 @@ StreamProcessor::StreamProcessor(int c_num_compressor_threads, int c_itoc_buf_si
     inputStreamReader = new InputStreamReader();
     compressor = new Compressor();
     displayOutput = new DisplayOutput();
-    inputToCompressorBuffer = new StreamBuffer(c_itoc_buf_size);
-    compressorToOutputBuffer = new StreamBuffer(c_ctoo_buf_size, c_num_compressor_threads);
+    inputToCompressorBuffer = new StreamBuffer();
+    compressorToOutputBuffer = new StreamBuffer(c_num_compressor_threads);
     num_compressor_threads = c_num_compressor_threads;
     compressorThreads = (std::thread**)malloc(num_compressor_threads * sizeof(std::thread*));
 }
@@ -41,6 +41,11 @@ void StreamProcessor::setup() {
     inputStreamReader->getHeader();
     compressor->passValues(this);
     displayOutput->passValues(this);
+    int itoc_buf_size = (x_count / parent_x) * (y_count / parent_y) * (z_count / parent_z);
+    if (itoc_buf_size > 512)
+        itoc_buf_size = 512;
+    inputToCompressorBuffer->setSize(itoc_buf_size);
+    compressorToOutputBuffer->setSize(itoc_buf_size * 256);
 }
 
 void StreamProcessor::start() {
@@ -51,7 +56,7 @@ void StreamProcessor::start() {
     }
     // inputStreamReader.printHeader();
     if (verbose) {
-        fprintf(stderr, "Starting Compressor Threads\n");
+        fprintf(stderr, "Starting %d Compressor Threads\n", num_compressor_threads);
         started = std::chrono::high_resolution_clock::now();
     }
     for (int i = 0; i < num_compressor_threads; i++) {

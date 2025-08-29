@@ -1,18 +1,20 @@
 #include "StreamProcessor.h"
 
-StreamProcessor::StreamBuffer::StreamBuffer(int c_buf_size, int c_num_writers) {
-    buffer = (void**)malloc(c_buf_size * sizeof(void*));
-    buf_size = c_buf_size;
-    size_stored = 0;
-    write_ptr = buffer;
-    read_ptr = buffer;
+StreamProcessor::StreamBuffer::StreamBuffer(int c_num_writers) {
     num_writers = c_num_writers;
     closed_writers = 0;
+    size_stored = 0;
 }
 
-StreamProcessor::StreamBuffer::StreamBuffer(int c_buf_size) : StreamBuffer(c_buf_size, 1) {}
+StreamProcessor::StreamBuffer::StreamBuffer() : StreamBuffer(1) {}
 
-StreamProcessor::StreamBuffer::~StreamBuffer() {
+StreamProcessor::StreamBuffer::~StreamBuffer() {}
+
+void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
+    buffer = (void**)malloc(c_buf_size * sizeof(void*));
+    buf_size = c_buf_size;
+    write_ptr = buffer;
+    read_ptr = buffer;
 }
 
 //TODO error check for when setSize hasnt been called and buffer = NULL
@@ -52,7 +54,7 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
     //fprintf(stderr, "  Stored: %d / %d\n", size_stored, buf_size);
     if (buf == NULL) {
         closed_writers++;
-        fprintf(stderr, "closed: %d / %d\n", closed_writers, num_writers);
+        //fprintf(stderr, "closed: %d / %d\n", closed_writers, num_writers);
         if (closed_writers >= num_writers) {
             char *null_ptr = NULL;
             buf = (void **)&null_ptr;

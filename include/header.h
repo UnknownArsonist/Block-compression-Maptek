@@ -9,6 +9,9 @@
 #include <cstring>
 #include <mutex>
 #include <chrono>
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 struct SubBlock {
     int x;
