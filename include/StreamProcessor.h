@@ -9,12 +9,13 @@ class StreamProcessor {
         class DisplayOutput;
         class StreamBuffer;
         StreamProcessor();
+        StreamProcessor(int c_num_compressor_threads);
+        StreamProcessor(int c_num_compressor_threads, int c_itoc_buf_size, int c_ctoo_buf_size);
         ~StreamProcessor();
 
         void setVerbose(bool c_v);
         void setup();
         void start();
-        void end();
 
     private:
         InputStreamReader *inputStreamReader;
@@ -24,9 +25,10 @@ class StreamProcessor {
         StreamBuffer *compressorToOutputBuffer;
         std::chrono::time_point<std::chrono::high_resolution_clock> started;
         std::thread inputStreamReaderThread;
-        std::thread compressorThread;
+        std::thread **compressorThreads;
         std::thread displayOutputThread;
         bool verbose = false;
+        int num_compressor_threads;
 
         // Dimensions of the 3D block
         int x_count;
@@ -129,6 +131,9 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         ~DisplayOutput();
         void displayBlocks();
         void printSubBlock(SubBlock *sb);
+#ifdef WIN32
+        void printSubBlock(HANDLE hStdout, SubBlock *sb);
+#endif
         void passBuffers(StreamBuffer *c_input_stream);
         void passValues(StreamProcessor *sp);
         void passValues(std::unordered_map<char, std::string> *c_tag_table);
@@ -136,6 +141,12 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         
     private:
         StreamProcessor::StreamBuffer *input_stream;
+        int *x_count;
+        int *y_count;
+        int *z_count;
+        int *parent_x;
+        int *parent_y;
+        int *parent_z;
         std::unordered_map<char, std::string> *tag_table;
         bool verbose = false;
 };
@@ -143,10 +154,11 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
 class StreamProcessor::StreamBuffer {
     public:
         StreamBuffer();
+        StreamBuffer(int c_num_writers);
         ~StreamBuffer();
-        void setSize(int buffer_size);
         int pop(void **buf);
         int push(void **buf);
+        void setSize(int c_buf_size);
         void printBuffer();
 
     private:
@@ -155,6 +167,10 @@ class StreamProcessor::StreamBuffer {
         void **read_ptr;
         int buf_size;
         int size_stored;
+        int num_writers;
+        int closed_writers;
 
         std::mutex mutex;
+        std::condition_variable write_cond;
+        std::condition_variable read_cond;
 };

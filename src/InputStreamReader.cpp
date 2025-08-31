@@ -82,7 +82,7 @@ void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<
             v = 0;
             value.clear();
             n++;
-        } else {
+        } else if (c != ' ') {
             if (v == 0) {
                 key = c;
             } else {
@@ -94,10 +94,11 @@ void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<
 }
 
 static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z) {
-
-    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y) * (*z_count / *parent_z);
+    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
 
     ParentBlock *parent_blocks[num_parent_blocks];
+    int uniform[num_parent_blocks];
+    memset(uniform, 1, sizeof(int) * num_parent_blocks);
     //printf(": %d\n", num_parent_blocks);
     memset(parent_blocks, 0, sizeof(ParentBlock*) * num_parent_blocks);
 
@@ -106,6 +107,7 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
     int x = 0;
     int y = 0;
     int z = 0;
+    int blocks = 0;
 
     while ((ch = getc(input_stream)) != EOF) {
         if (ch == '\n') {
@@ -117,9 +119,9 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
                 z++;
             }
         } else if (ch != '\r') {
-            int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y) + (*x_count / *parent_x) * (*y_count / *parent_y) * (z / *parent_z);
+            int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y);
             if (parent_blocks[current_parent_block] == NULL) {
-                parent_blocks[current_parent_block] = new ParentBlock{x, y, z, (char *)malloc(*parent_x * *parent_y * *parent_z)};
+                parent_blocks[current_parent_block] = new ParentBlock{x, y, z, (char *)malloc(*parent_x * *parent_y * *parent_z), ch};
             }
 
             int parent_relative_x = x % *parent_x;
@@ -128,16 +130,17 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
             // printf("[%d] (%d, %d, %d), (%d, %d, %d): %c\n", current_parent_block, x, y, z, parent_relative_x, parent_relative_y, parent_relative_z, ch);
 
             parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
-            
+            if (ch != parent_blocks[current_parent_block]->first) {
+                uniform[current_parent_block] = 0;
+            }
+            //fprintf(stderr, "(%d, %d, %d) %c\n", x, y, z, ch);
             if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
-                // printf("[%d] %d, %d, %d\n", current_parent_block, x, y, z);
-                /*
-                if (uniform[current_parent_block]) {
+                //fprintf(stderr, " %d / %d (%d, %d, %d)\n", current_parent_block, num_parent_blocks, x, y, z);
+                if (uniform[current_parent_block]/* && false */) {
                     free(parent_blocks[current_parent_block]->block);
                     parent_blocks[current_parent_block]->block = NULL;
                 }
-                */
-
+                blocks++;
                 output_stream->push((void **)&parent_blocks[current_parent_block]);
                 //free(parent_blocks[current_parent_block]);
                 parent_blocks[current_parent_block] = NULL;
@@ -147,6 +150,7 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
             n = 0;
         }
     }
+    //fprintf(stderr, "Input End (%d, %d, %d) %d\n", x, y, z, blocks);
     output_stream->push(NULL);
 }
 
@@ -162,9 +166,9 @@ void StreamProcessor::InputStreamReader::processStream_test(const std::string& a
 // print the header information and the 3D block data
 void StreamProcessor::InputStreamReader::printHeader() {
     // print the header information
-    printf("%d, %d, %d, %d, %d, %d\n", *x_count, *y_count, *z_count, *parent_x, *parent_y, *parent_z);
+    fprintf(stderr, "%d,%d,%d,%d,%d,%d\n", *x_count, *y_count, *z_count, *parent_x, *parent_y, *parent_z);
     for (const auto &e : *tag_table)
     {
-        printf("%c, %s\n", e.first, e.second.c_str());
+        fprintf(stderr, "%c,%s\n", e.first, e.second.c_str());
     }
 }

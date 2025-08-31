@@ -64,120 +64,137 @@ void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
 void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 {
     // std::cout << parent_block->block-
-    int z = 0;
-    while (z < *parent_z)
-    {
-        /*
-        int parent_x = sub_blocks[0][0].size();
-        int parent_y = sub_blocks[0].size();
-        int parent_z = sub_blocks.size();
-        */
+    
+    //fprintf(stderr, "%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, (*tag_table)[parent_block->first].c_str());
 
+    if (parent_block->block == NULL) {
+        SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+        sub_block->x = parent_block->x;
+        sub_block->y = parent_block->y;
+        sub_block->z = parent_block->z;
+        sub_block->l = *parent_x;
+        sub_block->w = *parent_y;
+        sub_block->h = *parent_z;
+        sub_block->tag = parent_block->first;
+
+        output_stream->push((void **)&sub_block);
+    } else {
         // marks visited cells
-        std::vector<std::vector<std::vector<bool>>> visited(
-            *parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
-
-        for (int y = 0; y < *parent_y; y++)
+        std::vector<std::vector<std::vector<bool>>> visited(*parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
+        for (int z = 0; z < *parent_z; z++)
         {
-            for (int x = 0; x < *parent_x; x++)
+            for (int y = 0; y < *parent_y; y++)
             {
-                if (visited[z][y][x])
-                    // from x = 1 -> x = 7 && y = 0 -> y = 7 because these are already visited
-                    continue;
-
-                char target = parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + z];
-
-                // Determine max size in X
-                int maxX = x; // 0 1 7
-                while (maxX < *parent_x && parent_block->block[(maxX * *parent_y * *parent_z) + (y * *parent_z) + z] == target && !visited[z][y][maxX])
-                    maxX++; // 1 7
-
-                // Determine max size in Y
-                int maxY = y;         // 0
-                bool uniformY = true; // checks if character in the y direction whether the target is same or not
-                while (maxY < *parent_y && uniformY)
+                for (int x = 0; x < *parent_x; x++)
                 {
-                    // x = 0 -> maxX = 1; 1 < 7
-                    for (int xi = x; xi < maxX; xi++)
-                    {
-                        // x1 = 1
-                        if (parent_block->block[(xi * *parent_y * *parent_z) + (maxY * *parent_z) + z] != target || visited[z][maxY][xi])
-                        {
-                            uniformY = false;
-                            break;
-                        }
-                    }
-                    if (uniformY)
-                        maxY++;
-                }
+                    if (visited[z][y][x])
+                        continue;
 
-                // Determine max size in Z
-                int maxZ = z;
-                bool uniformZ = true;
-                // checks the subblocks, are they uniform and did we alreadly visit them.
-                while (maxZ < *parent_z && uniformZ)
-                {
-                    // y = 0 maxY = 1
-                    for (int yi = y; yi < maxY; yi++)
+                    char target = parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + z];
+
+                    // Determine max size in X
+                    int maxX = x + 1; // 0 1 7
+                    while (maxX < *parent_x && parent_block->block[(maxX * *parent_y * *parent_z) + (y * *parent_z) + z] == target && !visited[z][y][maxX])
+                        maxX++; // 1 7
+
+                    // Determine max size in Y
+                    int maxY = y + 1;         // 0
+                    while (maxY < *parent_y)
                     {
-                        // x = 0 MaxX = 1
+                        bool uniformY = true;
+                        // x = 0 -> maxX = 1; 1 < 7
                         for (int xi = x; xi < maxX; xi++)
                         {
-                            if (parent_block->block[(xi * *parent_y * *parent_z) + (yi * *parent_z) + maxZ] != target || visited[maxZ][yi][xi])
+                            // x1 = 1
+                            if (parent_block->block[(xi * *parent_y * *parent_z) + (maxY * *parent_z) + z] != target || visited[z][maxY][xi])
                             {
-                                uniformZ = false;
+                                uniformY = false;
                                 break;
                             }
                         }
+                        if (!uniformY)
+                            break;
+                        maxY++;
+                    }
+
+                    // Determine max size in Z
+                    int maxZ = z + 1;
+                    // checks the subblocks, are they uniform and did we alreadly visit them.
+                    while (maxZ < *parent_z)
+                    {
+                        bool uniformZ = true;
+                        // y = 0 maxY = 1
+                        for (int yi = y; yi < maxY; yi++)
+                        {
+                            // x = 0 MaxX = 1
+                            for (int xi = x; xi < maxX; xi++)
+                            {
+                                if (parent_block->block[(xi * *parent_y * *parent_z) + (yi * *parent_z) + maxZ] != target || visited[maxZ][yi][xi])
+                                {
+                                    uniformZ = false;
+                                    break;
+                                }
+                            }
+                            if (!uniformZ)
+                                break;
+                        }
                         if (!uniformZ)
                             break;
-                    }
-                    if (uniformZ)
-                        // maxZ = 2 /*breaks the loop
                         maxZ++;
+                    }
+
+                    // Mark all as visited
+                    for (int zz = z; zz < maxZ; zz++)
+                        for (int yy = y; yy < maxY; yy++)
+                            for (int xx = x; xx < maxX; xx++)
+                                visited[zz][yy][xx] = true;
+
+                    // Output the packed block
+                    SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+                    sub_block->x = parent_block->x + x;
+                    sub_block->y = parent_block->y + y;
+                    sub_block->z = parent_block->z + z;
+                    sub_block->l = maxX - x;
+                    sub_block->w = maxY - y;
+                    sub_block->h = maxZ - z;
+                    sub_block->tag = target;
+
+                    //fprintf(stderr, "Compressor: push %d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tag_table)[target].c_str());
+                    output_stream->push((void **)&sub_block);
                 }
-
-                // Mark all as visited
-                for (int zz = z; zz < maxZ; zz++)
-                    for (int yy = y; yy < maxY; yy++)
-                        for (int xx = x; xx < maxX; xx++)
-                            // storing the character into the visited array
-                            visited[zz][yy][xx] = true;
-
-                // Output the packed block
-                SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
-                sub_block->x = parent_block->x + x;
-                sub_block->y = parent_block->y + y;
-                sub_block->z = parent_block->z + z;
-                sub_block->l = maxX - x;
-                sub_block->w = maxY - y;
-                sub_block->h = maxZ - z;
-                sub_block->tag = target;
-
-                output_stream->push((void **)&sub_block);
-                // printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tagTable)[target].c_str());
+                // x += 1; x = 1; x = 2
             }
-            // x += 1; x = 1; x = 2
+            // y = 1
         }
-        // y = 1
-        z++;
     }
-    free(parent_block);
+    SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+    int chunk = (parent_block->z / *parent_y);
+    sub_block->x = chunk;
+    sub_block->y = 0;
+    sub_block->z = 0;
+    sub_block->l = 0;
+    sub_block->w = 0;
+    sub_block->h = 0;
+    sub_block->tag = 1;
+    output_stream->push((void **)&sub_block);
+    //fprintf(stderr, "             %d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, (*tag_table)[parent_block->first].c_str());
+    delete parent_block;
 }
 
 void StreamProcessor::Compressor::compressStream()
 {
     ParentBlock *parent_block;
-    char *null_ptr = NULL;
     int block_count = 0;
 
     do
     {
+        //fprintf(stderr, "Compressor: get val\n");
         input_stream->pop((void **)&parent_block);
 
         if (parent_block == NULL)
         {
-            output_stream->push((void **)&null_ptr);
+            //fprintf(stderr, "IN TO COMP END\n");
+            output_stream->push(NULL);
             break;
         }
 
