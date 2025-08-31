@@ -86,9 +86,10 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 {
     // std::cout << parent_block->block-
     
-    //fprintf(stderr, "%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, (*tag_table)[parent_block->first].c_str());
+    //fprintf(stderr, "Compressor: %d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, (*tag_table)[parent_block->first].c_str());
 
     if (parent_block->block == NULL) {
+        parent_block->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*));
         SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
         sub_block->x = parent_block->x;
         sub_block->y = parent_block->y;
@@ -97,10 +98,12 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
         sub_block->w = *parent_y;
         sub_block->h = *parent_z;
         sub_block->tag = parent_block->first;
-
-        output_stream->push((void **)&sub_block);
+        parent_block->sub_blocks[0] = sub_block;
+        parent_block->sub_block_num = 1;
+        output_stream->push((void **)&parent_block);
     } else {
-        // marks visited cells
+        //TODO: maybe use vector with smaller initial array size which can then be dynamically extended if necessary
+        parent_block->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*) * *parent_x * *parent_y * *parent_z);
         std::vector<std::vector<std::vector<bool>>> visited(*parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
         for (int z = 0; z < *parent_z; z++)
         {
@@ -179,16 +182,19 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
                     sub_block->w = maxY - y;
                     sub_block->h = maxZ - z;
                     sub_block->tag = target;
-
-                    //fprintf(stderr, "Compressor: push %d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, x, y, z, maxX, maxY, maxZ, (*tag_table)[target].c_str());
-                    output_stream->push((void **)&sub_block);
+                    parent_block->sub_blocks[parent_block->sub_block_num] = sub_block;
+                    parent_block->sub_block_num++;
+                    //fprintf(stderr, "Compressor: %d,%d,%d,%s\n", sub_block->x, sub_block->y, sub_block->z, (*tag_table)[target].c_str());
+                    //output_stream->push((void **)&parent_block);
                 }
                 // x += 1; x = 1; x = 2
             }
             // y = 1
         }
+        output_stream->push((void **)&parent_block);
+        free(parent_block->block);
     }
-    SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+    /* SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
     int chunk = (parent_block->z / *parent_y);
     sub_block->x = chunk;
     sub_block->y = 0;
@@ -197,9 +203,8 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
     sub_block->w = 0;
     sub_block->h = 0;
     sub_block->tag = 1;
-    output_stream->push((void **)&sub_block);
-    //fprintf(stderr, "             %d,%d,%d,%s\n", parent_block->x, parent_block->y, parent_block->z, (*tag_table)[parent_block->first].c_str());
-    delete parent_block;
+    output_stream->push((void **)&sub_block); */
+    //delete parent_block;
 }
 
 void StreamProcessor::Compressor::compressStream()

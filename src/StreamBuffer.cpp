@@ -21,7 +21,6 @@ void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
 int StreamProcessor::StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
 
-    //fprintf(stderr, "Stored: %d / %d\n", size_stored, buf_size);
     // Wait until there's data available
     read_cond.wait(lock, [this]{ return (size_stored > 0); });
     //fprintf(stderr, "pop val, Stored: %d / %d\n", size_stored, buf_size);

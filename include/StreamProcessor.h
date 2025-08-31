@@ -136,6 +136,7 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         void printSubBlock(SubBlock *sb);
 #ifdef WIN32
         void printSubBlock(HANDLE hStdout, SubBlock *sb);
+        void printSubBlocks(HANDLE hStdout, ParentBlock *pb);
 #endif
         void passBuffers(StreamBuffer *c_input_stream);
         void passValues(StreamProcessor *sp);
@@ -152,6 +153,9 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         int *parent_z;
         std::unordered_map<char, std::string> *tag_table;
         bool verbose = false;
+        char *buffer;
+        int buf_size;
+        int stored;
 };
 
 class StreamProcessor::StreamBuffer {

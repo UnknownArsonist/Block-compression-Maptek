@@ -15,7 +15,6 @@
 #endif
 
 struct SubBlock {
-    int pbc;
     int x;
     int y;
     int z;
@@ -31,4 +30,6 @@ struct ParentBlock {
     int z;
     char *block;
     char first;
+    SubBlock **sub_blocks;
+    int sub_block_num;
 };
