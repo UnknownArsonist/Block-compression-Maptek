@@ -32,7 +32,6 @@ void StreamProcessor::InputStreamReader::passValues(int *c_x_count, int *c_y_cou
     parent_z = c_parent_z;
     tag_table = c_tag_table;
 }
-
 void StreamProcessor::InputStreamReader::passBuffers(StreamProcessor::StreamBuffer *c_output_stream)
 {
     output_stream = c_output_stream;
