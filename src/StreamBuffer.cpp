@@ -73,6 +73,7 @@ int StreamBuffer::push(void **buf)
     size_stored++;
     return 1;
 }
+
 void StreamBuffer::printBuffer()
 {
     printf("[");

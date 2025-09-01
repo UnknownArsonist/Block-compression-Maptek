@@ -52,7 +52,7 @@ void Compressor::OctreeCompression(ParentBlock *parent_block)
         return;
     }
 
-    // Only use octree for non-uniform blocks
+    // Only use octree for non-uniforbuim blocks
     OctTreeNode *root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
 
     std::vector<SubBlock> subBlocks;
@@ -80,6 +80,7 @@ void Compressor::OctreeCompression(ParentBlock *parent_block)
     octTree.deleteTree(root);
     free(parent_block);
 }
+
 void Compressor::processParentBlocks(ParentBlock *parent_block)
 {
     // std::cout << parent_block->block-
@@ -192,145 +193,186 @@ void Compressor::base_algorithms(ParentBlock *parent_block)
     {
         if (isUniform(parent_block, zi))
         {
+            // Determine how many consecutive uniform slices exist from zi onward
             char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + zi];
+            int start_z = zi;
+            int h = 1;
+
+            while ((zi + 1) < *parent_z &&
+                   isUniform(parent_block, zi + 1) &&
+                   parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + (zi + 1)] == target)
+            {
+                zi++;
+                h++;
+            }
+
+            
+            // Create one tall block covering all consecutive uniform slices
             SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
             sub_block->x = parent_block->x;
             sub_block->y = parent_block->y;
-            sub_block->z = parent_block->z;
+            sub_block->z = parent_block->z + start_z;
             sub_block->l = *parent_x;
             sub_block->w = *parent_y;
-            sub_block->h = zi;
+            sub_block->h = h;
             sub_block->tag = target;
             output_stream->push((void **)&sub_block);
+            
+            //printf("%d,%d,%d,%d,%d,%c",parent_block->x,parent_block->y,parent_block->z + start_z,*parent_x,*parent_y,h,target);
         }
         else
         {
-            // char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + zi];
-            /*
-
-            SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
-            sub_block->x = parent_block->x;
-            sub_block->y = parent_block->y;
-            sub_block->z = parent_block->z;
-            sub_block->l = *parent_x;
-            sub_block->w = *parent_y;
-            sub_block->h = zi;
-            sub_block->tag = target;
-            output_stream->push((void **)&sub_block);
-            */
-            blockRect(parent_block, parent_block->x, parent_block->y, zi);
+            blockRect3D(parent_block);
         }
-        zi++;
+
+        zi++; // Move to next slice    
     }
 }
 
-void Compressor::blockRect(ParentBlock *parent_block, int x_index, int y_index, int z_index)
+void Compressor::blockRect3D(ParentBlock *pb)
 {
-    struct Run
-    {
+    struct Run {
         int startX, startY, startZ;
         int endX, endY, endZ;
         char tag;
     };
 
-    // vector to store full rectangular runs
-    std::vector<Run> filtered;
+    int strideY = *parent_z;
+    int strideX = *parent_y * *parent_z;
 
-    // --- Scan horizontal runs ---
-    std::vector<Run> horizontalRuns;
+    // Store active runs from the previous slice (z-1)
+    std::vector<Run> activeRuns;
 
-    char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + z_index];
-
-    for (int y = 0; y < *parent_y; y++)
+    // Process slice by slice
+    for (int z = 0; z < *parent_z; z++)
     {
-        int lenX = 0;
-        int startX = 0;
+        std::vector<Run> horizontalRuns;
+        std::vector<Run> sliceRuns;
 
-        for (int x = 0; x < *parent_x; x++)
+        // --- Build horizontal runs per row ---
+        for (int y = 0; y < *parent_y; y++)
         {
-            char current = parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + z_index];
+            char target = voxel(pb, 0, y, z, strideX, strideY);
+            int lenX = 0, startX = 0;
 
-            if (current == target)
+            for (int x = 0; x < *parent_x; x++)
             {
-                if (lenX == 0)
-                    startX = x;
+                char current = voxel(pb, x, y, z, strideX, strideY);
 
-                lenX++;
-            }
-            else
-            {
-                if (lenX > 0)
+                if (current == target)
                 {
-                    horizontalRuns.push_back({startX, y, z_index, startX + lenX - 1, y, z_index, target});
+                    if (lenX == 0) startX = x;
+                    lenX++;
                 }
+                else
+                {
+                    if (lenX > 0)
+                        horizontalRuns.push_back({startX, y, z, startX + lenX - 1, y, z, target});
 
-                // start new run
-                target = current;
-                lenX = 1;
-                startX = x;
+                    target = current;
+                    lenX = 1;
+                    startX = x;
+                }
+            }
+            if (lenX > 0)
+                horizontalRuns.push_back({startX, y, z, startX + lenX - 1, y, z, target});
+        }
+
+        // --- Merge vertically in Y ---
+        if (!horizontalRuns.empty())
+        {
+            Run start = horizontalRuns[0];
+            Run last  = horizontalRuns[0];
+
+            for (size_t i = 1; i < horizontalRuns.size(); i++)
+            {
+                Run curr = horizontalRuns[i];
+                if (curr.startX == last.startX &&
+                    curr.endX   == last.endX &&
+                    curr.startZ == last.startZ &&
+                    curr.tag    == last.tag)
+                {
+                    last.endY = curr.endY; // extend vertically
+                }
+                else
+                {
+                    sliceRuns.push_back({last.startX, start.startY, last.startZ,
+                                         last.endX, last.endY, last.endZ, last.tag});
+                    start = curr;
+                    last  = curr;
+                }
+            }
+            sliceRuns.push_back({last.startX, start.startY, last.startZ,
+                                 last.endX, last.endY, last.endZ, last.tag});
+        }
+
+        // --- Merge with activeRuns (Z extension) ---
+        std::vector<Run> newActive;
+        for (auto &r : sliceRuns)
+        {
+            bool merged = false;
+            for (auto &a : activeRuns)
+            {
+                if (a.startX == r.startX && a.endX == r.endX &&
+                    a.startY == r.startY && a.endY == r.endY &&
+                    a.tag    == r.tag    && a.endZ + 1 == r.startZ)
+                {
+                    // Extend existing block in Z
+                    a.endZ = r.endZ;
+                    newActive.push_back(a);
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged)
+                newActive.push_back(r);
+        }
+
+        // Any active runs not extended → emit as SubBlock
+        for (auto &a : activeRuns)
+        {
+            bool stillActive = false;
+            for (auto &na : newActive)
+            {
+                if (&a == &na) { stillActive = true; break; }
+            }
+            if (!stillActive)
+            {
+                SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+                sub_block->x = pb->x + a.startX;
+                sub_block->y = pb->y + a.startY;
+                sub_block->z = pb->z + a.startZ;
+
+                sub_block->l = a.endX - a.startX + 1;
+                sub_block->w = a.endY - a.startY + 1;
+                sub_block->h = a.endZ - a.startZ + 1;
+
+                sub_block->tag = a.tag;
+                output_stream->push((void **)&sub_block);
             }
         }
 
-        if (lenX > 0)
-        {
-            horizontalRuns.push_back({startX, y, z_index, startX + lenX - 1, y, z_index, target});
-        }
+        activeRuns = std::move(newActive);
     }
 
-    // --- Compress vertical runs ---
-    if (!horizontalRuns.empty())
-    {
-        Run start = horizontalRuns[0];
-        Run last = horizontalRuns[0];
-
-        for (size_t i = 1; i < horizontalRuns.size(); i++)
-        {
-            Run curr = horizontalRuns[i];
-
-            // same horizontal run extended vertically
-            if (curr.startX == last.startX &&
-                curr.endX == last.endX &&
-                curr.startZ == last.startZ &&
-                curr.tag == last.tag)
-            {
-                last.endY = curr.endY; // extend vertical run
-            }
-            else
-            {
-                // push completed vertical run
-                filtered.push_back({last.startX, start.startY, last.startZ,
-                                    last.endX, last.endY, last.endZ, last.tag});
-
-                // start new run
-                start = curr;
-                last = curr;
-            }
-        }
-
-        // push final run
-        filtered.push_back({last.startX, start.startY, last.startZ,
-                            last.endX, last.endY, last.endZ, last.tag});
-    }
-
-    for (const auto &r : filtered)
+    // Flush remaining active runs
+    for (auto &a : activeRuns)
     {
         SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+        sub_block->x = pb->x + a.startX;
+        sub_block->y = pb->y + a.startY;
+        sub_block->z = pb->z + a.startZ;
 
-        // position of the sub-block = starting coords
-        sub_block->x = parent_block->x + r.startX;
-        sub_block->y = parent_block->y + r.startY;
-        sub_block->z = parent_block->z + r.startZ;
+        sub_block->l = a.endX - a.startX + 1;
+        sub_block->w = a.endY - a.startY + 1;
+        sub_block->h = a.endZ - a.startZ + 1;
 
-        // sizes = difference between start and end + 1
-        sub_block->l = r.endX - r.startX + 1;
-        sub_block->w = r.endY - r.startY + 1;
-        sub_block->h = r.endZ - r.startZ + 1;
-
-        sub_block->tag = r.tag;
-
+        sub_block->tag = a.tag;
         output_stream->push((void **)&sub_block);
     }
 }
+
+
 
 void Compressor::compressStream()
 {
@@ -352,7 +394,7 @@ void Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
-        /*
+        
         if (block_count > 10000)
         { // Adjust this threshold as needed
             processParentBlocks(parent_block);
@@ -361,9 +403,14 @@ void Compressor::compressStream()
         {
             OctreeCompression(parent_block);
         }
+<<<<<<< HEAD
             */
         Compressedcube = compressParentBlock(parent_block, *parent_x, *parent_y, *parent_z);
         printCuboidsWithLegend(Compressedcube, *tagTable);
+=======
+            
+        //base_algorithms(parent_block);
+>>>>>>> 42b1140eec2fe31997d77995c38aec7f593bdfe0
     } while (parent_block != NULL);
 }
 // -----------ENDS HERE-------- ------------- //
@@ -371,13 +418,15 @@ void Compressor::compressStream()
 // -----------HELPER FUNCTIONS ------------- //
 bool Compressor::isUniform(ParentBlock *parent_block, int i)
 {
-    char target = parent_block->block[(0 * *parent_y * *parent_z) + (0 * *parent_z) + i];
+    int strideY = *parent_z;
+    int strideX = *parent_y * *parent_z;
+    char target = voxel(parent_block, 0, 0, i, strideX, strideY);
+
     for (int y = 0; y < *parent_y; y++)
     {
         for (int x = 0; x < *parent_x; x++)
         {
-            if (target != parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + i])
-            {
+            if (voxel(parent_block, x, y, i, strideX, strideY) != target){
                 return false;
             }
         }
