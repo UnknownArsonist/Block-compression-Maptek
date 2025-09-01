@@ -3,13 +3,6 @@
 #include "StreamBuffer.h"
 #include "OctTreeNode.h"
 
-struct Cuboid
-{
-    int x, y, z; // bottom-left-front corner
-    int w, h, d; // width, height, depth
-    char label;  // block label
-};
-
 class Compressor
 {
 private:

@@ -8,6 +8,9 @@
 #include <thread>
 #include <cstring>
 #include <mutex>
+#include <stack>
+#include <algorithm>
+
 
 struct SubBlock
 {
@@ -43,5 +46,11 @@ struct Run
 struct OptimalRect {
     int x, y, w, h;
     char label;
-    int area() const { return w * h; }
+};
+
+struct Cuboid
+{
+    int x, y, z; // bottom-left-front corner
+    int w, h, d; // width, height, depth
+    char label;  // block label
 };
