@@ -1,0 +1,90 @@
+{
+  "benchmark_timestamp": "2025-08-22 15:25:54",
+  "executable": "./myapp",
+  "total_tests": 2,
+  "results": [
+    {
+      "test_file": "test_data/demo_blocks.txt",
+      "iterations": 2,
+      "success_rate": 1.0,
+      "avg_time": 0.009671449661254883,
+      "min_time": 0.008945941925048828,
+      "max_time": 0.010396957397460938,
+      "std_time": 0.0007255077362060547,
+      "avg_compression_ratio": 3.658112582781457,
+      "input_size": 4419,
+      "avg_output_size": 1208.0,
+      "all_runs": [
+        {
+          "input_file": "test_data/demo_blocks.txt",
+          "input_size_bytes": 4419,
+          "output_size_bytes": 1208,
+          "processing_time_seconds": 0.008945941925048828,
+          "compression_ratio": 3.658112582781457,
+          "compressed_blocks": 64,
+          "return_code": 0,
+          "stderr": "",
+          "success": true
+        },
+        {
+          "input_file": "test_data/demo_blocks.txt",
+          "input_size_bytes": 4419,
+          "output_size_bytes": 1208,
+          "processing_time_seconds": 0.010396957397460938,
+          "compression_ratio": 3.658112582781457,
+          "compressed_blocks": 64,
+          "return_code": 0,
+          "stderr": "",
+          "success": true
+        }
+      ]
+    },
+    {
+      "test_file": "test_data/demo_random.txt",
+      "iterations": 2,
+      "success_rate": 1.0,
+      "avg_time": 0.008671402931213379,
+      "min_time": 0.008527994155883789,
+      "max_time": 0.008814811706542969,
+      "std_time": 0.00014340877532958984,
+      "avg_compression_ratio": 0.07932291012224237,
+      "input_size": 4419,
+      "avg_output_size": 55709.0,
+      "all_runs": [
+        {
+          "input_file": "test_data/demo_random.txt",
+          "input_size_bytes": 4419,
+          "output_size_bytes": 55709,
+          "processing_time_seconds": 0.008527994155883789,
+          "compression_ratio": 0.07932291012224237,
+          "compressed_blocks": 2805,
+          "return_code": 0,
+          "stderr": "",
+          "success": true
+        },
+        {
+          "input_file": "test_data/demo_random.txt",
+          "input_size_bytes": 4419,
+          "output_size_bytes": 55709,
+          "processing_time_seconds": 0.008814811706542969,
+          "compression_ratio": 0.07932291012224237,
+          "compressed_blocks": 2805,
+          "return_code": 0,
+          "stderr": "",
+          "success": true
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "successful_tests": 2,
+    "overall_success_rate": 1.0,
+    "fastest_test": "test_data/demo_random.txt",
+    "fastest_time": 0.008671402931213379,
+    "slowest_test": "test_data/demo_blocks.txt",
+    "slowest_time": 0.009671449661254883,
+    "best_compression": 3.658112582781457,
+    "worst_compression": 0.07932291012224237,
+    "avg_compression_ratio": 1.8687177464518496
+  }
+}

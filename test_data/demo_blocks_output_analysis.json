@@ -1,0 +1,9 @@
+{
+  "original_voxels": 4096,
+  "compressed_blocks": 64,
+  "compression_ratio": 9.142857142857142,
+  "average_block_size": 288.0,
+  "max_block_size": 512,
+  "min_block_size": 64,
+  "block_size_std": 146.64242223858687
+}

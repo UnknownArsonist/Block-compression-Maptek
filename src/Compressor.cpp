@@ -1,126 +1,20 @@
-#include "Compressor.h"
+#include "StreamProcessor.h"
+#include "OctTreeNode.h"
 
-Compressor::Compressor() {}
-Compressor::~Compressor() {}
-
-// -----------UNWANTED FUNCTIONS------------- //
-void Compressor::compressParentBlock()
+StreamProcessor::Compressor::Compressor()
 {
-
-    std::vector<std::vector<std::vector<std::vector<char>>>> parent_blocks = {
-        { // Block 0
-         {// Slice 0
-          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
-          {'o', 'o', 't', 't', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'s', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'s', 's', 'o', 'o', 'o', 'o', 'o', 'o'}}},
-        { // Block 1
-         {// Slice 0
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 't', 't'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'o', 'o', 'o', 'o', 'o', 's', 's', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 's', 's'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 't', 's', 's', 's'},
-          {'o', 'o', 'o', 'o', 'o', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 't', 't'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 's', 's', 'o'}}},
-        { // Block 2
-         {// Slice 0
-          {'o', 't', 't', 't', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 't', 't', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'o', 'o', 't', 't', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 's', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 't', 's', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 's', 's', 'o', 'o'}}},
-        { // Block 3
-         {// Slice 0
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}}}};
-    /*
-        oo s o
-        oo o o
-        ss o o
-        oooo
-    */
-    // processParentBlocks(parent_blocks[0]);
-    //  printParentBlock(parent_blocks);
 }
-void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
-{
-    for (size_t block_idx = 0; block_idx < parent_blocks.size(); ++block_idx)
-    {
-        std::cout << "=== Block " << block_idx << " ===\n";
 
-        for (size_t slice_idx = 0; slice_idx < parent_blocks[block_idx].size(); ++slice_idx)
-        {
-            std::cout << "Slice " << slice_idx << ":\n";
-            for (const auto &row : parent_blocks[block_idx][slice_idx])
-            {
-                for (char cell : row)
-                {
-                    printf("%c", cell);
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-        printf("-----\n");
-    }
-}
-// -----------ENDS HERE-------- ------------- //
+StreamProcessor::Compressor::~Compressor() {}
+
+
+void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
 
 // -----------MAIN FUNCTIONS-------- -------- //
-void Compressor::OctreeCompression(ParentBlock *parent_block)
+void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
 {
     // Check if the parent block is uniform first
+    OctTreeNode octTree;
     char uniformTag;
     if (octTree.isUniform(parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z, uniformTag))
     {
@@ -143,7 +37,7 @@ void Compressor::OctreeCompression(ParentBlock *parent_block)
     OctTreeNode *root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
 
     std::vector<SubBlock> subBlocks;
-    octTree.collectSubBlocks(root, subBlocks, tagTable, parent_block->x, parent_block->y, parent_block->z);
+    octTree.collectSubBlocks(root, subBlocks, tag_table, parent_block->x, parent_block->y, parent_block->z);
 
     std::vector<SubBlock> mergedBlocks = octTree.mergeSubBlocks(subBlocks);
 
@@ -167,7 +61,7 @@ void Compressor::OctreeCompression(ParentBlock *parent_block)
     octTree.deleteTree(root);
     free(parent_block);
 }
-void Compressor::processParentBlocks(ParentBlock *parent_block)
+void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 {
     // std::cout << parent_block->block-
     int z = 0;
@@ -271,7 +165,7 @@ void Compressor::processParentBlocks(ParentBlock *parent_block)
     free(parent_block);
 }
 
-void Compressor::compressStream()
+void StreamProcessor::Compressor::compressStream()
 {
     ParentBlock *parent_block;
     char *null_ptr = NULL;
@@ -290,32 +184,34 @@ void Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
-        if (block_count > 10000)
-        { // Adjust this threshold as needed
-            processParentBlocks(parent_block);
-        }
-        else
-        {
-            OctreeCompression(parent_block);
-        }
+        processParentBlocks(parent_block);
 
     } while (parent_block != NULL);
 }
 // -----------ENDS HERE-------- ------------- //
 
 // -----------HELPER FUNCTIONS ------------- //
-void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table, int mx_count, int my_count, int mz_count)
+void StreamProcessor::Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table)
 {
     parent_x = c_parent_x;
     parent_y = c_parent_y;
     parent_z = c_parent_z;
 
-    this->mx = mx;
-    this->my = my;
-    this->mz = mz;
-    tagTable = tag_table;
+
+    tag_table = c_tag_table;
 }
-void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
+
+void StreamProcessor::Compressor::passValues(StreamProcessor *sp) {
+    
+    parent_x = &(sp->parent_x);
+    parent_y = &(sp->parent_y);
+    parent_z = &(sp->parent_z);
+    tag_table = &(sp->tag_table);
+    input_stream = (sp->inputToCompressorBuffer);
+    output_stream = (sp->compressorToOutputBuffer);
+}
+
+void StreamProcessor::Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
 {
     input_stream = c_input_stream;
     output_stream = c_output_stream;
