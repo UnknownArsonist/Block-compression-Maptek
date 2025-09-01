@@ -1,7 +1,6 @@
 #include "StreamProcessor.h"
 #include "OctTreeNode.h"
 
-<<<<<<< HEAD
 StreamProcessor::Compressor::Compressor()
 {
 }
@@ -10,14 +9,6 @@ StreamProcessor::Compressor::~Compressor() {}
 
 
 void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
-=======
-Compressor::Compressor() {}
-Compressor::~Compressor() {}
-
-// -----------UNWANTED FUNCTIONS------------- //
-
-// -----------ENDS HERE-------- ------------- //
->>>>>>> a2ad81cb1398a5931628996c732e2f7e2326a7a8
 
 // -----------MAIN FUNCTIONS-------- -------- //
 void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
