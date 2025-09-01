@@ -59,11 +59,7 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
     std::vector<Cuboid> cuboids;
 
     // Stage 1: compress along X (runs per row per slice)
-    struct Run
-    {
-        int x, len;
-        char label;
-    };
+  
     std::vector<std::vector<std::vector<Run>>> runs(
         parent_z, std::vector<std::vector<Run>>(parent_y));
 
@@ -91,88 +87,213 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
         }
     }
 
-    // Stage 2: merge runs vertically into rectangles
-    struct Rect
-    {
-        int x, y, w, h;
-        char label;
-    };
+    // Stage 2: merge runs vertically into rectangles - FIXED
+    // Stage 2: PROPER vertical merging with exact coverage
     std::vector<std::vector<Rect>> rects(parent_z);
+    std::vector<std::vector<std::vector<bool>>> covered(
+        parent_z, std::vector<std::vector<bool>>(
+            parent_y, std::vector<bool>(parent_x, false)));
 
     for (int z = 0; z < parent_z; z++)
     {
         for (int y = 0; y < parent_y; y++)
         {
-            for (auto &r : runs[z][y])
+            for (const auto& run : runs[z][y])
             {
-                // try to extend this run upwards
-                int h = 1;
-                while (y + h < parent_y)
+                // Skip if this run is already covered
+                if (covered[z][y][run.x]) continue;
+                
+                // Find maximum vertical extent with identical run pattern
+                int max_h = 1;
+                for (int test_y = y + 1; test_y < parent_y; test_y++)
                 {
-                    bool match = false;
-                    for (auto &r2 : runs[z][y + h])
+                    bool match_found = false;
+                    for (const auto& test_run : runs[z][test_y])
                     {
-                        if (r2.x == r.x && r2.len == r.len && r2.label == r.label)
+                        if (test_run.x == run.x && 
+                            test_run.len == run.len && 
+                            test_run.label == run.label &&
+                            !covered[z][test_y][test_run.x])
                         {
-                            match = true;
+                            match_found = true;
                             break;
                         }
                     }
-                    if (!match)
-                        break;
-                    h++;
+                    if (!match_found) break;
+                    max_h++;
                 }
-                rects[z].push_back({r.x, y, r.len, h, r.label});
-                y += h - 1; // skip ahead
+                
+                // Actually create the rectangle with the found height
+                int actual_h = 1;
+                for (int dy = 0; dy < max_h; dy++)
+                {
+                    int current_y = y + dy;
+                    bool row_ok = true;
+                    
+                    // Check if this entire row segment is available and matches
+                    for (int dx = 0; dx < run.len; dx++)
+                    {
+                        if (covered[z][current_y][run.x + dx])
+                        {
+                            row_ok = false;
+                            break;
+                        }
+                        
+                        // Verify the run actually exists at this position
+                        bool run_found = false;
+                        for (const auto& r : runs[z][current_y])
+                        {
+                            if (r.x <= run.x && r.x + r.len > run.x && 
+                                r.label == run.label)
+                            {
+                                run_found = true;
+                                break;
+                            }
+                        }
+                        if (!run_found)
+                        {
+                            row_ok = false;
+                            break;
+                        }
+                    }
+                    
+                    if (!row_ok) break;
+                    actual_h = dy + 1;
+                }
+                
+                // Create the rectangle and mark as covered
+                if (actual_h > 0)
+                {
+                    rects[z].push_back({run.x, y, run.len, actual_h, run.label});
+                    
+                    // Mark all blocks in this rectangle as covered
+                    for (int dy = 0; dy < actual_h; dy++)
+                    {
+                        for (int dx = 0; dx < run.len; dx++)
+                        {
+                            covered[z][y + dy][run.x + dx] = true;
+                        }
+                    }
+                }
             }
         }
     }
 
     // Stage 3: merge rectangles across slices into cuboids
+    // Stage 3: merge rectangles across slices into cuboids
+    // Stage 3: merge rectangles across slices into cuboids - FIXED
+    std::vector<std::vector<bool>> processed_z(parent_z);
     for (int z = 0; z < parent_z; z++)
     {
-        for (auto &r : rects[z])
+        processed_z[z].resize(rects[z].size(), false);
+    }
+
+    for (int z = 0; z < parent_z; z++)
+    {
+        for (size_t i = 0; i < rects[z].size(); i++)
         {
+            if (processed_z[z][i]) continue;
+            
+            auto &r = rects[z][i];
             int d = 1;
+            
+            // Check subsequent slices for identical rectangles
             while (z + d < parent_z)
             {
                 bool found = false;
-                for (auto it = rects[z + d].begin(); it != rects[z + d].end(); ++it)
+                for (size_t j = 0; j < rects[z + d].size(); j++)
                 {
-                    if (it->x == r.x && it->y == r.y && it->w == r.w && it->h == r.h && it->label == r.label)
+                    if (processed_z[z + d][j]) continue;
+                    
+                    auto &candidate = rects[z + d][j];
+                    if (candidate.x == r.x && candidate.y == r.y && 
+                        candidate.w == r.w && candidate.h == r.h && 
+                        candidate.label == r.label)
                     {
                         found = true;
-                        rects[z + d].erase(it);
+                        processed_z[z + d][j] = true;
                         break;
                     }
                 }
-                if (!found)
-                    break;
+                if (!found) break;
                 d++;
             }
+            
             cuboids.push_back({pb->x + r.x, pb->y + r.y, pb->z + z, r.w, r.h, d, r.label});
+            processed_z[z][i] = true;
         }
     }
-
+    //validateCoverage(cuboids, pb, parent_x, parent_y, parent_z);
     return cuboids;
 }
-
-void Compressor::printTagTable(const std::unordered_map<char, std::string> *tag_table)
+void Compressor::validateCoverage(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
+                     int parent_x, int parent_y, int parent_z)
 {
-    if (!tag_table) return; // safety check
-
-    printf("Tag Table:\n");
-    for (const auto &e : *tag_table)
+    // Create coverage grid
+    std::vector<std::vector<std::vector<bool>>> covered(
+        parent_z, std::vector<std::vector<bool>>(
+            parent_y, std::vector<bool>(parent_x, false)));
+    
+    int total_blocks = parent_x * parent_y * parent_z;
+    int covered_blocks = 0;
+    
+    // Mark all covered blocks
+    for (const auto& c : cuboids)
     {
-        char key = e.first;
-        std::string value = e.second;
-
-        // Remove trailing '\r' or other non-printable characters
-        
-        printf("%c, %s\n", key, value.c_str());
+        for (int dz = 0; dz < c.d; dz++)
+        {
+            for (int dy = 0; dy < c.h; dy++)
+            {
+                for (int dx = 0; dx < c.w; dx++)
+                {
+                    int x = c.x - pb->x + dx;
+                    int y = c.y - pb->y + dy;
+                    int z = c.z - pb->z + dz;
+                    
+                    if (x >= 0 && x < parent_x && y >= 0 && y < parent_y && z >= 0 && z < parent_z)
+                    {
+                        if (!covered[z][y][x])
+                        {
+                            covered[z][y][x] = true;
+                            covered_blocks++;
+                        }
+                        else
+                        {
+                            std::cerr << "ERROR: Block at (" << x << "," << y << "," << z 
+                                      << ") covered multiple times!" << std::endl;
+                        }
+                    }
+                }
+            }
+        }
     }
-}
-
+    
+    // Check for missing blocks
+    if (covered_blocks != total_blocks)
+    {
+        std::cerr << "ERROR: Coverage incomplete! " << covered_blocks 
+                  << " blocks covered out of " << total_blocks << std::endl;
+        
+        // Find missing blocks
+        for (int z = 0; z < parent_z; z++)
+        {
+            for (int y = 0; y < parent_y; y++)
+            {
+                for (int x = 0; x < parent_x; x++)
+                {
+                    if (!covered[z][y][x])
+                    {
+                        std::cerr << "Missing block at: " << x << "," << y << "," << z << std::endl;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        std::cout << "Validation passed: All " << total_blocks << " blocks covered" << std::endl;
+    }
+} 
 
 void Compressor::printCuboidsWithLegend(
      std::vector<Cuboid> &cuboids,

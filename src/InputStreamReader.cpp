@@ -100,162 +100,91 @@ void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string
 }
 
 
-// Function to process the slice of 3D block data
 void InputStreamReader::processStream()
 {
-    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y) * (*z_count / *parent_z);
+    // Use ceil division to include partial parent blocks at edges
+    int num_parent_blocks = 
+        ((*x_count + *parent_x - 1) / *parent_x) *
+        ((*y_count + *parent_y - 1) / *parent_y) *
+        ((*z_count + *parent_z - 1) / *parent_z);
 
-    // Use heap allocation with proper error checking
     ParentBlock **parent_blocks = (ParentBlock **)calloc(num_parent_blocks, sizeof(ParentBlock *));
     if (!parent_blocks)
-    {
-        // fprintf(stderr, "Memory allocation failed for parent_blocks\n");
         exit(1);
-    }
 
     char *null_ptr = NULL;
-    int consecutive_newlines = 0;
-    int x = 0;
-    int y = 0;
-    int z = 0;
+    int x = 0, y = 0, z = 0;
     char ch;
 
     while ((ch = getc(input_stream)) != EOF)
     {
-        // Check if we've processed all blocks
-        if (z >= *z_count)
-        {
-            // fprintf(stderr, "Processed all %d slices, stopping\n", *z_count);
-            break;
-        }
-        if (y >= *y_count)
-        {
-            // fprintf(stderr, "Processed all %d rows in slice %d, moving to next slice\n", *y_count, z);
-            y = 0;
-            z++;
-            continue;
-        }
-        if (x >= *x_count)
-        {
-            // fprintf(stderr, "Processed all %d columns in row %d, slice %d, moving to next row\n", *x_count, y, z);
-            x = 0;
-            y++;
-            continue;
-        }
+        // Skip carriage returns
+        if (ch == '\r') continue;
 
+        // Treat newline as end-of-row, but do not advance z yet
         if (ch == '\n')
         {
-            consecutive_newlines++;
-            // Blank line indicates slice separator
-            if (consecutive_newlines >= 2 && x == 0 && y == 0)
+            if (x > 0)
             {
-                // We're at the beginning of a new slice
-                z++;
-                consecutive_newlines = 0;
-                // fprintf(stderr, "Moving to slice %d\n", z);
-            }
-            else if (x > 0)
-            {
-                // End of row within a slice
                 x = 0;
                 y++;
-                consecutive_newlines = 0;
-                // fprintf(stderr, "Moving to row %d in slice %d\n", y, z);
             }
             continue;
         }
-        else if (ch == '\r')
-        {
-            continue; // Ignore carriage returns
-        }
 
-        // Reset consecutive newlines counter when we get a non-whitespace character
-        consecutive_newlines = 0;
+        // Stop if we reached the end of the volume
+        if (z >= *z_count) break;
+        if (y >= *y_count) { y = 0; z++; continue; }
+        if (x >= *x_count) { x = 0; y++; continue; }
 
-        // Calculate parent block index with bounds checking
-        int parent_x_index = x / *parent_x;
-        int parent_y_index = y / *parent_y;
-        int parent_z_index = z / *parent_z;
+        // Compute parent block indices
+        int px_idx = x / *parent_x;
+        int py_idx = y / *parent_y;
+        int pz_idx = z / *parent_z;
 
-        int current_parent_block = parent_x_index +
-                                   (*x_count / *parent_x) * parent_y_index +
-                                   (*x_count / *parent_x) * (*y_count / *parent_y) * parent_z_index;
+        int blocks_per_x = (*x_count + *parent_x - 1) / *parent_x;
+        int blocks_per_y = (*y_count + *parent_y - 1) / *parent_y;
 
+        int current_parent_block = px_idx + blocks_per_x * py_idx + blocks_per_x * blocks_per_y * pz_idx;
         if (current_parent_block < 0 || current_parent_block >= num_parent_blocks)
         {
-            // fprintf(stderr, "ERROR: Parent block index %d out of bounds (max: %d)\n",
-            //         current_parent_block, num_parent_blocks - 1);
-            // fprintf(stderr, "Coordinates: x=%d, y=%d, z=%d\n", x, y, z);
-            // fprintf(stderr, "Parent indices: px=%d, py=%d, pz=%d\n",
-            //         parent_x_index, parent_y_index, parent_z_index);
             x++;
             continue;
         }
 
-        if (parent_blocks[current_parent_block] == NULL)
+        // Allocate parent block if needed
+        if (!parent_blocks[current_parent_block])
         {
             parent_blocks[current_parent_block] = (ParentBlock *)malloc(sizeof(ParentBlock));
-            if (!parent_blocks[current_parent_block])
-            {
-                // fprintf(stderr, "Memory allocation failed for ParentBlock\n");
-                exit(1);
-            }
+            parent_blocks[current_parent_block]->x = px_idx * (*parent_x);
+            parent_blocks[current_parent_block]->y = py_idx * (*parent_y);
+            parent_blocks[current_parent_block]->z = pz_idx * (*parent_z);
 
-            parent_blocks[current_parent_block]->block = (char *)malloc(*parent_x * *parent_y * *parent_z);
-            if (!parent_blocks[current_parent_block]->block)
-            {
-                // fprintf(stderr, "Memory allocation failed for block data\n");
-                free(parent_blocks[current_parent_block]);
-                exit(1);
-            }
-
-            // Set the origin coordinates of this parent block
-            parent_blocks[current_parent_block]->x = parent_x_index * *parent_x;
-            parent_blocks[current_parent_block]->y = parent_y_index * *parent_y;
-            parent_blocks[current_parent_block]->z = parent_z_index * *parent_z;
-
-            // Initialize the block memory
-            memset(parent_blocks[current_parent_block]->block, 0, *parent_x * *parent_y * *parent_z);
+            int block_size = *parent_x * *parent_y * *parent_z;
+            parent_blocks[current_parent_block]->block = (char *)malloc(block_size);
+            memset(parent_blocks[current_parent_block]->block, 0, block_size);
         }
 
-        int parent_relative_x = x % *parent_x;
-        int parent_relative_y = y % *parent_y;
-        int parent_relative_z = z % *parent_z;
+        // Compute relative coordinates within the parent block
+        int rx = x % *parent_x;
+        int ry = y % *parent_y;
+        int rz = z % *parent_z;
 
-        int index = (parent_relative_x * *parent_y * *parent_z) +
-                    (parent_relative_y * *parent_z) +
-                    parent_relative_z;
+        // Row-major indexing to match compressParentBlock
+        int index = rz * (*parent_y * *parent_x) + ry * (*parent_x) + rx;
+        parent_blocks[current_parent_block]->block[index] = ch;
 
-        if (index < 0 || index >= *parent_x * *parent_y * *parent_z)
-        {
-            // fprintf(stderr, "ERROR: Block index %d out of bounds for parent block %d\n",
-            //         index, current_parent_block);
-            // fprintf(stderr, "Relative coordinates: rx=%d, ry=%d, rz=%d\n",
-            //         parent_relative_x, parent_relative_y, parent_relative_z);
-        }
-        else
-        {
-            parent_blocks[current_parent_block]->block[index] = ch;
-        }
-
-        // Check if this completes the parent block
-        if (parent_relative_x == *parent_x - 1 &&
-            parent_relative_y == *parent_y - 1 &&
-            parent_relative_z == *parent_z - 1)
+        // Check if parent block is complete (optional)
+        if (rx == *parent_x - 1 && ry == *parent_y - 1 && rz == *parent_z - 1)
         {
             output_stream->push((void **)&parent_blocks[current_parent_block]);
             parent_blocks[current_parent_block] = NULL;
         }
 
+        // Advance coordinates
         x++;
-
-        // Check if we've reached the end of a row
-        if (x >= *x_count)
-        {
-            x = 0;
-            y++;
-            // fprintf(stderr, "End of row %d in slice %d\n", y - 1, z);
-        }
+        if (x >= *x_count) { x = 0; y++; }
+        if (y >= *y_count) { y = 0; z++; }
     }
 
     // Push any remaining incomplete parent blocks
@@ -270,9 +199,9 @@ void InputStreamReader::processStream()
     // Push NULL terminator
     output_stream->push((void **)&null_ptr);
 
-    // Free the parent_blocks array
     free(parent_blocks);
 }
+
 
 // print the header information and the 3D block data
 void InputStreamReader::printHeader(FILE *out)

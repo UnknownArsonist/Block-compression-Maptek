@@ -40,5 +40,7 @@ public:
                                             int parent_x, int parent_y, int parent_z);
     void printCuboidsWithLegend(std::vector<Cuboid> &cuboids,
                                      std::unordered_map<char, std::string> &legend);
-    void printTagTable(const std::unordered_map<char, std::string> *tag_table);
+    
+                                     void validateCoverage(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
+                     int parent_x, int parent_y, int parent_z);
 };

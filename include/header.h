@@ -27,3 +27,15 @@ struct ParentBlock
     int z;
     char *block;
 };
+
+struct Rect
+{
+    int x, y, w, h;
+    char label;
+};
+
+struct Run
+{
+    int x, len;
+    char label;
+};
