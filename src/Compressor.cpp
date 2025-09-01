@@ -52,6 +52,15 @@ void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_outpu
 }
 // -----------ENDS HERE-------- ------------- //
 
+bool Compressor::hasRunAt(const std::vector<Run>& runs, int x, char label) {
+    for (const auto& run : runs) {
+        if (x >= run.x && x < run.x + run.len && run.label == label) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Compress a single 2D slice into rectangles
 std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
                                                     int parent_x, int parent_y, int parent_z)
@@ -59,7 +68,6 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
     std::vector<Cuboid> cuboids;
 
     // Stage 1: compress along X (runs per row per slice)
-  
     std::vector<std::vector<std::vector<Run>>> runs(
         parent_z, std::vector<std::vector<Run>>(parent_y));
 
@@ -87,101 +95,85 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
         }
     }
 
-    // Stage 2: merge runs vertically into rectangles - FIXED
-    // Stage 2: PROPER vertical merging with exact coverage
+    // Stage 2: OPTIMAL rectangle finding with maximum area
     std::vector<std::vector<Rect>> rects(parent_z);
-    std::vector<std::vector<std::vector<bool>>> covered(
-        parent_z, std::vector<std::vector<bool>>(
-            parent_y, std::vector<bool>(parent_x, false)));
-
+    
     for (int z = 0; z < parent_z; z++)
     {
-        for (int y = 0; y < parent_y; y++)
+        std::vector<std::vector<bool>> covered(
+            parent_y, std::vector<bool>(parent_x, false));
+        
+        int remaining_blocks = parent_x * parent_y;
+        
+        while (remaining_blocks > 0)
         {
-            for (const auto& run : runs[z][y])
+            OptimalRect best_rect = {0, 0, 0, 0, ' '};
+            int max_area = 0;
+            
+            // Find the largest possible rectangle starting from each uncovered position
+            for (int y = 0; y < parent_y; y++)
             {
-                // Skip if this run is already covered
-                if (covered[z][y][run.x]) continue;
-                
-                // Find maximum vertical extent with identical run pattern
-                int max_h = 1;
-                for (int test_y = y + 1; test_y < parent_y; test_y++)
+                for (int x = 0; x < parent_x; x++)
                 {
-                    bool match_found = false;
-                    for (const auto& test_run : runs[z][test_y])
-                    {
-                        if (test_run.x == run.x && 
-                            test_run.len == run.len && 
-                            test_run.label == run.label &&
-                            !covered[z][test_y][test_run.x])
-                        {
-                            match_found = true;
+                    if (covered[y][x]) continue;
+                    
+                    // Get the label at this position
+                    char current_label = ' ';
+                    for (const auto& run : runs[z][y]) {
+                        if (x >= run.x && x < run.x + run.len) {
+                            current_label = run.label;
                             break;
                         }
                     }
-                    if (!match_found) break;
-                    max_h++;
-                }
-                
-                // Actually create the rectangle with the found height
-                int actual_h = 1;
-                for (int dy = 0; dy < max_h; dy++)
-                {
-                    int current_y = y + dy;
-                    bool row_ok = true;
+                    if (current_label == ' ') continue;
                     
-                    // Check if this entire row segment is available and matches
-                    for (int dx = 0; dx < run.len; dx++)
-                    {
-                        if (covered[z][current_y][run.x + dx])
-                        {
-                            row_ok = false;
+                    // Find maximum width at this row
+                    int max_width = parent_x - x;
+                    for (int dx = 0; dx < max_width; dx++) {
+                        if (covered[y][x + dx] || !hasRunAt(runs[z][y], x + dx, current_label)) {
+                            max_width = dx;
                             break;
                         }
-                        
-                        // Verify the run actually exists at this position
-                        bool run_found = false;
-                        for (const auto& r : runs[z][current_y])
-                        {
-                            if (r.x <= run.x && r.x + r.len > run.x && 
-                                r.label == run.label)
-                            {
-                                run_found = true;
+                    }
+                    
+                    // Find maximum height with consistent width
+                    int max_height = parent_y - y;
+                    for (int dy = 0; dy < max_height; dy++) {
+                        for (int dx = 0; dx < max_width; dx++) {
+                            if (covered[y + dy][x + dx] || 
+                                !hasRunAt(runs[z][y + dy], x + dx, current_label)) {
+                                max_height = dy;
                                 break;
                             }
                         }
-                        if (!run_found)
-                        {
-                            row_ok = false;
-                            break;
-                        }
+                        if (max_height == dy) break;
                     }
                     
-                    if (!row_ok) break;
-                    actual_h = dy + 1;
-                }
-                
-                // Create the rectangle and mark as covered
-                if (actual_h > 0)
-                {
-                    rects[z].push_back({run.x, y, run.len, actual_h, run.label});
-                    
-                    // Mark all blocks in this rectangle as covered
-                    for (int dy = 0; dy < actual_h; dy++)
-                    {
-                        for (int dx = 0; dx < run.len; dx++)
-                        {
-                            covered[z][y + dy][run.x + dx] = true;
-                        }
+                    // Calculate area and update best rectangle
+                    int area = max_width * max_height;
+                    if (area > max_area) {
+                        max_area = area;
+                        best_rect = {x, y, max_width, max_height, current_label};
                     }
                 }
             }
+            
+            if (max_area == 0) break; // No more rectangles found
+            
+            // Add the best rectangle and mark as covered
+            rects[z].push_back({best_rect.x, best_rect.y, best_rect.w, best_rect.h, best_rect.label});
+            
+            for (int dy = 0; dy < best_rect.h; dy++) {
+                for (int dx = 0; dx < best_rect.w; dx++) {
+                    covered[best_rect.y + dy][best_rect.x + dx] = true;
+                }
+            }
+            
+            remaining_blocks -= max_area;
         }
     }
 
     // Stage 3: merge rectangles across slices into cuboids
-    // Stage 3: merge rectangles across slices into cuboids
-    // Stage 3: merge rectangles across slices into cuboids - FIXED
     std::vector<std::vector<bool>> processed_z(parent_z);
     for (int z = 0; z < parent_z; z++)
     {
@@ -223,77 +215,49 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
             processed_z[z][i] = true;
         }
     }
-    //validateCoverage(cuboids, pb, parent_x, parent_y, parent_z);
+    
+    // Fast validation (comment out for production)
+    //validateCoverageEfficient(cuboids, pb, parent_x, parent_y, parent_z);
+    
     return cuboids;
 }
-void Compressor::validateCoverage(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
+
+// Efficient validation without full 3D array
+void Compressor::validateCoverageEfficient(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
                      int parent_x, int parent_y, int parent_z)
 {
-    // Create coverage grid
-    std::vector<std::vector<std::vector<bool>>> covered(
-        parent_z, std::vector<std::vector<bool>>(
-            parent_y, std::vector<bool>(parent_x, false)));
+    uint64_t total_blocks = parent_x * parent_y * parent_z;
+    uint64_t covered_blocks = 0;
     
-    int total_blocks = parent_x * parent_y * parent_z;
-    int covered_blocks = 0;
-    
-    // Mark all covered blocks
-    for (const auto& c : cuboids)
-    {
-        for (int dz = 0; dz < c.d; dz++)
-        {
-            for (int dy = 0; dy < c.h; dy++)
-            {
-                for (int dx = 0; dx < c.w; dx++)
-                {
-                    int x = c.x - pb->x + dx;
-                    int y = c.y - pb->y + dy;
-                    int z = c.z - pb->z + dz;
-                    
-                    if (x >= 0 && x < parent_x && y >= 0 && y < parent_y && z >= 0 && z < parent_z)
-                    {
-                        if (!covered[z][y][x])
-                        {
-                            covered[z][y][x] = true;
-                            covered_blocks++;
-                        }
-                        else
-                        {
-                            std::cerr << "ERROR: Block at (" << x << "," << y << "," << z 
-                                      << ") covered multiple times!" << std::endl;
-                        }
-                    }
-                }
-            }
-        }
+    for (const auto& c : cuboids) {
+        covered_blocks += c.w * c.h * c.d;
     }
     
-    // Check for missing blocks
-    if (covered_blocks != total_blocks)
-    {
+    if (covered_blocks != total_blocks) {
         std::cerr << "ERROR: Coverage incomplete! " << covered_blocks 
                   << " blocks covered out of " << total_blocks << std::endl;
-        
-        // Find missing blocks
-        for (int z = 0; z < parent_z; z++)
-        {
-            for (int y = 0; y < parent_y; y++)
-            {
-                for (int x = 0; x < parent_x; x++)
-                {
-                    if (!covered[z][y][x])
-                    {
-                        std::cerr << "Missing block at: " << x << "," << y << "," << z << std::endl;
-                    }
-                }
+    }
+    else {
+        std::cout << "Validation passed: All " << total_blocks << " blocks covered" << std::endl;
+    }
+    
+    // Quick overlap check
+    for (size_t i = 0; i < cuboids.size(); i++) {
+        for (size_t j = i + 1; j < cuboids.size(); j++) {
+            const auto& a = cuboids[i];
+            const auto& b = cuboids[j];
+            
+            // Check for overlap in 3D space
+            bool x_overlap = (a.x < b.x + b.w) && (a.x + a.w > b.x);
+            bool y_overlap = (a.y < b.y + b.h) && (a.y + a.h > b.y);
+            bool z_overlap = (a.z < b.z + b.d) && (a.z + a.d > b.z);
+            
+            if (x_overlap && y_overlap && z_overlap) {
+                std::cerr << "WARNING: Potential overlap between cuboids " << i << " and " << j << std::endl;
             }
         }
     }
-    else
-    {
-        std::cout << "Validation passed: All " << total_blocks << " blocks covered" << std::endl;
-    }
-} 
+}
 
 void Compressor::printCuboidsWithLegend(
      std::vector<Cuboid> &cuboids,

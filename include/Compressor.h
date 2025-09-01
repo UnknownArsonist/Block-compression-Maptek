@@ -24,7 +24,6 @@ private:
 
     StreamBuffer *input_stream;
     StreamBuffer *output_stream;
-    OctTreeNode octTree;
     std::unordered_map<char, std::string> *tagTable;
     std::vector<SubBlock *> blocks;
 
@@ -35,12 +34,13 @@ public:
     void passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tagtable, int mx_count, int my_count, int mz_count);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
     // --------------------------// -------------------------
-
+    bool hasRunAt(const std::vector<Run>& runs, int x, char label);
+    
     std::vector<Cuboid> compressParentBlock(ParentBlock *pb,
                                             int parent_x, int parent_y, int parent_z);
     void printCuboidsWithLegend(std::vector<Cuboid> &cuboids,
                                      std::unordered_map<char, std::string> &legend);
     
-                                     void validateCoverage(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
+    void validateCoverageEfficient(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
                      int parent_x, int parent_y, int parent_z);
 };

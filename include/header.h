@@ -39,3 +39,9 @@ struct Run
     int x, len;
     char label;
 };
+
+struct OptimalRect {
+    int x, y, w, h;
+    char label;
+    int area() const { return w * h; }
+};
