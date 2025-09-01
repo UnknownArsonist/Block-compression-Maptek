@@ -35,7 +35,7 @@ public:
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
     // --------------------------// -------------------------
     bool hasRunAt(const std::vector<Run>& runs, int x, char label);
-    
+
     std::vector<Cuboid> compressParentBlock(ParentBlock *pb,
                                             int parent_x, int parent_y, int parent_z);
     void printCuboidsWithLegend(std::vector<Cuboid> &cuboids,
@@ -43,4 +43,7 @@ public:
     
     void validateCoverageEfficient(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
                      int parent_x, int parent_y, int parent_z);
+
+    void validate3DCoverage(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
+                                   int parent_x, int parent_y, int parent_z);
 };
