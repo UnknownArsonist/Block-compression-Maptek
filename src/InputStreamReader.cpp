@@ -99,6 +99,7 @@ void InputStreamReader::getLegendFromStream(std::unordered_map<char, std::string
     }
 }
 
+
 // Function to process the slice of 3D block data
 void InputStreamReader::processStream()
 {
