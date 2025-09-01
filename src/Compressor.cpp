@@ -1,6 +1,7 @@
 #include "StreamProcessor.h"
 #include "OctTreeNode.h"
 
+<<<<<<< HEAD
 StreamProcessor::Compressor::Compressor()
 {
 }
@@ -9,6 +10,14 @@ StreamProcessor::Compressor::~Compressor() {}
 
 
 void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
+=======
+Compressor::Compressor() {}
+Compressor::~Compressor() {}
+
+// -----------UNWANTED FUNCTIONS------------- //
+
+// -----------ENDS HERE-------- ------------- //
+>>>>>>> a2ad81cb1398a5931628996c732e2f7e2326a7a8
 
 // -----------MAIN FUNCTIONS-------- -------- //
 void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
@@ -184,7 +193,12 @@ void StreamProcessor::Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
+<<<<<<< HEAD
         processParentBlocks(parent_block);
+=======
+        OctreeCompression(parent_block);
+    
+>>>>>>> a2ad81cb1398a5931628996c732e2f7e2326a7a8
 
     } while (parent_block != NULL);
 }
