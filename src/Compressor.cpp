@@ -260,7 +260,7 @@ void Compressor::validateCoverageEfficient(const std::vector<Cuboid>& cuboids, P
 }
 
 void Compressor::printCuboidsWithLegend(
-     std::vector<Cuboid> &cuboids,
+    std::vector<Cuboid> &cuboids,
     std::unordered_map<char, std::string> &legend)
 {
     for (const auto &c : cuboids)
