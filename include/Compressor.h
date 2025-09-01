@@ -3,6 +3,13 @@
 #include "StreamBuffer.h"
 #include "OctTreeNode.h"
 
+struct Cuboid
+{
+    int x, y, z; // bottom-left-front corner
+    int w, h, d; // width, height, depth
+    char label;  // block label
+};
+
 class Compressor
 {
 private:
@@ -33,10 +40,16 @@ public:
     void base_algorithms(ParentBlock *parent_block);
 
     // helper function
-    void compressParentBlock();
+    // void compressParentBlock();
     void processParentBlocks(ParentBlock *parent_block);
     void printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks);
     void compressStream();
     void passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tagtable, int mx_count, int my_count, int mz_count);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
+    // --------------------------// -------------------------
+
+    std::vector<Cuboid> compressParentBlock(const ParentBlock *pb,
+                                            int parent_x, int parent_y, int parent_z);
+    void printCuboidsWithLegend(const std::vector<Cuboid> &cuboids,
+                                const std::unordered_map<char, std::string> &legend);
 };

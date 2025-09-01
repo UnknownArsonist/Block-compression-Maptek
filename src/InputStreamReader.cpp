@@ -1,4 +1,4 @@
-#include "InputStreamReader.h"
+#include "../include/InputStreamReader.h"
 
 // Constructor and Destructor
 InputStreamReader::InputStreamReader(FILE *in)

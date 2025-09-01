@@ -1,99 +1,11 @@
-#include "Compressor.h"
+#include "../include/Compressor.h"
 #include <unistd.h>
 
 Compressor::Compressor() {}
 Compressor::~Compressor() {}
 
 // -----------UNWANTED FUNCTIONS------------- //
-void Compressor::compressParentBlock()
-{
 
-    std::vector<std::vector<std::vector<std::vector<char>>>> parent_blocks = {
-        { // Block 0
-         {// Slice 0
-          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
-          {'o', 'o', 't', 't', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'s', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'s', 's', 'o', 'o', 'o', 'o', 'o', 'o'}}},
-        { // Block 1
-         {// Slice 0
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 't', 't'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'o', 'o', 'o', 'o', 'o', 's', 's', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 's', 's'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 't', 's', 's', 's'},
-          {'o', 'o', 'o', 'o', 'o', 't', 't', 't'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 't', 't'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 's', 's', 'o'}}},
-        { // Block 2
-         {// Slice 0
-          {'o', 't', 't', 't', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 't', 't', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'o', 'o', 't', 't', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 's', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 't', 'o'},
-          {'o', 'o', 'o', 'o', 't', 's', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 't', 't', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 's', 's', 'o', 'o'}}},
-        { // Block 3
-         {// Slice 0
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}},
-         {// Slice 1
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'},
-          {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}}}};
-    /*
-        oo s o
-        oo o o
-        ss o o
-        oooo
-    */
-    // processParentBlocks(parent_blocks[0]);
-    //  printParentBlock(parent_blocks);
-}
 void Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
 {
     for (size_t block_idx = 0; block_idx < parent_blocks.size(); ++block_idx)
@@ -425,6 +337,7 @@ void Compressor::compressStream()
     ParentBlock *parent_block;
     char *null_ptr = NULL;
     int block_count = 0;
+    std::vector<Cuboid> Compressedcube;
 
     do
     {
@@ -449,7 +362,8 @@ void Compressor::compressStream()
             OctreeCompression(parent_block);
         }
             */
-        base_algorithms(parent_block);
+        Compressedcube = compressParentBlock(parent_block, *parent_x, *parent_y, *parent_z);
+        printCuboidsWithLegend(Compressedcube, *tagTable);
     } while (parent_block != NULL);
 }
 // -----------ENDS HERE-------- ------------- //
@@ -488,3 +402,122 @@ void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_outpu
     output_stream = c_output_stream;
 }
 // -----------ENDS HERE-------- ------------- //
+
+// Compress a single 2D slice into rectangles
+std::vector<Cuboid> Compressor::compressParentBlock(const ParentBlock *pb,
+                                                    int parent_x, int parent_y, int parent_z)
+{
+    std::vector<Cuboid> cuboids;
+
+    // Stage 1: compress along X (runs per row per slice)
+    struct Run
+    {
+        int x, len;
+        char label;
+    };
+    std::vector<std::vector<std::vector<Run>>> runs(
+        parent_z, std::vector<std::vector<Run>>(parent_y));
+
+    auto idx = [&](int x, int y, int z)
+    {
+        return z * parent_y * parent_x + y * parent_x + x;
+    };
+
+    for (int z = 0; z < parent_z; z++)
+    {
+        for (int y = 0; y < parent_y; y++)
+        {
+            int x = 0;
+            while (x < parent_x)
+            {
+                char label = pb->block[idx(x, y, z)];
+                int len = 1;
+                while (x + len < parent_x && pb->block[idx(x + len, y, z)] == label)
+                {
+                    len++;
+                }
+                runs[z][y].push_back({x, len, label});
+                x += len;
+            }
+        }
+    }
+
+    // Stage 2: merge runs vertically into rectangles
+    struct Rect
+    {
+        int x, y, w, h;
+        char label;
+    };
+    std::vector<std::vector<Rect>> rects(parent_z);
+
+    for (int z = 0; z < parent_z; z++)
+    {
+        for (int y = 0; y < parent_y; y++)
+        {
+            for (auto &r : runs[z][y])
+            {
+                // try to extend this run upwards
+                int h = 1;
+                while (y + h < parent_y)
+                {
+                    bool match = false;
+                    for (auto &r2 : runs[z][y + h])
+                    {
+                        if (r2.x == r.x && r2.len == r.len && r2.label == r.label)
+                        {
+                            match = true;
+                            break;
+                        }
+                    }
+                    if (!match)
+                        break;
+                    h++;
+                }
+                rects[z].push_back({r.x, y, r.len, h, r.label});
+                y += h - 1; // skip ahead
+            }
+        }
+    }
+
+    // Stage 3: merge rectangles across slices into cuboids
+    for (int z = 0; z < parent_z; z++)
+    {
+        for (auto &r : rects[z])
+        {
+            int d = 1;
+            while (z + d < parent_z)
+            {
+                bool found = false;
+                for (auto it = rects[z + d].begin(); it != rects[z + d].end(); ++it)
+                {
+                    if (it->x == r.x && it->y == r.y && it->w == r.w && it->h == r.h && it->label == r.label)
+                    {
+                        found = true;
+                        rects[z + d].erase(it);
+                        break;
+                    }
+                }
+                if (!found)
+                    break;
+                d++;
+            }
+            cuboids.push_back({pb->x + r.x, pb->y + r.y, pb->z + z, r.w, r.h, d, r.label});
+        }
+    }
+
+    return cuboids;
+}
+
+void Compressor::printCuboidsWithLegend(const std::vector<Cuboid> &cuboids,
+                                        const std::unordered_map<char, std::string> &legend)
+{
+    for (const auto &c : cuboids)
+    {
+        // look up the label in the legend
+        auto it = legend.find(c.label);
+        const char *labelStr = (it != legend.end()) ? it->second.c_str() : "UNKNOWN";
+
+        printf("%d,%d,%d,%d,%d,%d,%s\n",
+               c.x, c.y, c.z, c.w, c.h, c.d, labelStr);
+    }
+}

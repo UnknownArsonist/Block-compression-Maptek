@@ -1,4 +1,4 @@
-#include "StreamProcessor.h"
+#include "../include/StreamProcessor.h"
 #include <signal.h>
 #include <execinfo.h>
 /* NOTES:
