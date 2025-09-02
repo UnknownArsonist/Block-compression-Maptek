@@ -4,12 +4,78 @@
 Compressor::Compressor() {}
 Compressor::~Compressor() {}
 
-// -----------UNWANTED FUNCTIONS------------- //
+// -----------UNWANTED FUNCTIONS/NOTES------------- //
+    /*
+       - Struct for this algorithm is stored in header.h
+
+        
+    */
+    
+    /*
+        struct Run
+        {
+            int x, len;
+            char label;
+        };
+
+        struct OptimalRect {
+            int x, y, w, h;
+            char label;
+        };
+    */
+    
+    /* 
+        z1      z2
+        -----------------------
+        oooo    oooo
+        otto    otto
+        otto    otto
+        oooo    oooo
+
+        ALGORITHM MAP 
+        // ---- STEP 1 ------ //
+        Stage 1: compress along X (runs per row per slice)
+        ---------------------------
+        z1
+        ----------------------------
+        runs[0]][0][1] = runs(0,4,o) 
+        runs[0]][1][0] = runs(0,1,o)
+        runs[0]][1][1] = runs(1,2,t)
+        runs[0][1][3] = runs(3,4,o)
+        runs[0]][2][0] = runs(0,1,o)
+        runs[0]][2][1] = runs(1,2,t)
+        runs[0][2][3] = runs(3,1,o) 
+        runs[0]][3][0] = runs(0,4,o)
+        ---------------------------
+        z2
+        ----------------------------
+        runs[1]][0][1] = runs(0,4,o) 
+        runs[1]][1][0] = runs(0,1,o)
+        runs[1]][1][1] = runs(1,2,t)
+        runs[1][1][3] = runs(3,4,o)
+        runs[1]][2][0] = runs(0,1,o)
+        runs[1]][2][1] = runs(1,2,t)
+        runs[1][2][3] = runs(3,1,o) 
+        runs[1]][3][0] = runs(0,4,o)
+
+        // ---- STEP 2 ------ //
+        Stage 2: OPTIMAL rectangle finding with maximum area
+        -----------------------------------------------------
+        -> find the the label in each run (eg rect(0,4,o) -> current label = 'o' )
+        -> use the hasRunAt() function to find out max width and height of each row
+        -> use the max_dth and max_height to calucate the rectangles (ie the 2d sub-block) and their area 
+        -> store all the rectangles in each slice in rect vector
+        
+        // ---- STEP 3 ----//
+        Merch the rect vectors that are same n each slice 
+
+    
+    */
 // -----------ENDS HERE-------- ------------- //
 
 // -----------MAIN FUNCTIONS-------- -------- //
-void Compressor::compressStream()
-{
+//  Startup
+void Compressor::compressStream(){
     ParentBlock *parent_block;
     char *null_ptr = NULL;
     int block_count = 0;
@@ -31,46 +97,19 @@ void Compressor::compressStream()
         printCuboidsWithLegend(Compressedcube, *tagTable);
     } while (parent_block != NULL);
 }
-// -----------ENDS HERE-------- ------------- //
 
-// -----------HELPER FUNCTIONS ------------- //
-void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table, int mx_count, int my_count, int mz_count)
-{
-    parent_x = c_parent_x;
-    parent_y = c_parent_y;
-    parent_z = c_parent_z;
-
-    this->mx = mx;
-    this->my = my;
-    this->mz = mz;
-    this->tagTable = tag_table;
-}
-void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
-{
-    input_stream = c_input_stream;
-    output_stream = c_output_stream;
-}
-// -----------ENDS HERE-------- ------------- //
-
-bool Compressor::hasRunAt(const std::vector<Run>& runs, int x, char label) {
-    for (const auto& run : runs) {
-        if (x >= run.x && x < run.x + run.len && run.label == label) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Compress a single 2D slice into rectangles
+// Compression Algorithm
 std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
                                                     int parent_x, int parent_y, int parent_z)
 {
     std::vector<Cuboid> cuboids;
 
     // Stage 1: compress along X (runs per row per slice)
+    // 3D vector to tract each run in x-axis
     std::vector<std::vector<std::vector<Run>>> runs(
         parent_z, std::vector<std::vector<Run>>(parent_y));
 
+    //get index of the character of the the parent block
     auto idx = [&](int x, int y, int z)
     {
         return z * parent_y * parent_x + y * parent_x + x;
@@ -83,13 +122,16 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
             int x = 0;
             while (x < parent_x)
             {
-                char label = pb->block[idx(x, y, z)];
+                char label = pb->block[idx(x, y, z)]; // parent_block[0][0][0] (i.e the first character)
                 int len = 1;
+                // compares the nth character and (n + 1)th character 
                 while (x + len < parent_x && pb->block[idx(x + len, y, z)] == label)
                 {
-                    len++;
+                    len++; // increase len if they are equal
                 }
+                // keeping a record of maximum length of indentical characters in x-axis
                 runs[z][y].push_back({x, len, label});
+                // changing the x value to ensure each run is properly recorded
                 x += len;
             }
         }
@@ -100,9 +142,12 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
     
     for (int z = 0; z < parent_z; z++)
     {
+        // 2D boolean grid with size of parent_y * parent_x and setting the value to false
+        // used for checking whether a character has been visited or not
         std::vector<std::vector<bool>> covered(
             parent_y, std::vector<bool>(parent_x, false));
         
+        // size of each slice of parent_block
         int remaining_blocks = parent_x * parent_y;
         
         while (remaining_blocks > 0)
@@ -121,7 +166,8 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
                     char current_label = ' ';
                     for (const auto& run : runs[z][y]) {
                         if (x >= run.x && x < run.x + run.len) {
-                            current_label = run.label;
+                            current_label = run.label; // according our map current_label is 'o'
+                            //once the x has reached max len in that row or the character in that row changes then break
                             break;
                         }
                     }
@@ -160,7 +206,8 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
             
             if (max_area == 0) break; // No more rectangles found
             
-            // Add the best rectangle and mark as covered
+            // Add the best rectangle and mark as covered (keep tract of the maximum area of the 2D block containtaing identical character)
+            //rects[z][j] - for each slice it contains all the rectangles
             rects[z].push_back({best_rect.x, best_rect.y, best_rect.w, best_rect.h, best_rect.label});
             
             for (int dy = 0; dy < best_rect.h; dy++) {
@@ -168,7 +215,7 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
                     covered[best_rect.y + dy][best_rect.x + dx] = true;
                 }
             }
-            
+            // total area of parent_block - max_area(maximum area of the 2D block containtaing identical character)
             remaining_blocks -= max_area;
         }
     }
@@ -186,6 +233,7 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
         {
             if (processed_z[z][i]) continue;
             
+            // pointing to the rectangles in each slices (ie rect[0][j] and rect[1][j] = slice 0 - slice 1, 1st rectangle..)
             auto &r = rects[z][i];
             int d = 1;
             
@@ -197,12 +245,15 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
                 {
                     if (processed_z[z + d][j]) continue;
                     
+                    //inner loops checks if the the rectanges in the current and next slices are same or not
                     auto &candidate = rects[z + d][j];
                     if (candidate.x == r.x && candidate.y == r.y && 
                         candidate.w == r.w && candidate.h == r.h && 
                         candidate.label == r.label)
                     {
+                        // if they are same then processed_z vector is updated
                         found = true;
+                        // updating the next slice
                         processed_z[z + d][j] = true;
                         break;
                     }
@@ -210,8 +261,9 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
                 if (!found) break;
                 d++;
             }
-            
+            // pushing the resut to cuboids to outputing the results
             cuboids.push_back({pb->x + r.x, pb->y + r.y, pb->z + z, r.w, r.h, d, r.label});
+            // updating the current slice
             processed_z[z][i] = true;
         }
     }
@@ -220,6 +272,38 @@ std::vector<Cuboid> Compressor::compressParentBlock(ParentBlock *pb,
     //validateCoverageEfficient(cuboids, pb, parent_x, parent_y, parent_z);
     
     return cuboids;
+}
+
+// -----------ENDS HERE-------- ------------- //
+
+
+// -----------HELPER FUNCTIONS ------------- //
+void Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tag_table, int mx_count, int my_count, int mz_count)
+{
+    parent_x = c_parent_x;
+    parent_y = c_parent_y;
+    parent_z = c_parent_z;
+
+    this->mx = mx;
+    this->my = my;
+    this->mz = mz;
+    this->tagTable = tag_table;
+}
+
+void Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
+{
+    input_stream = c_input_stream;
+    output_stream = c_output_stream;
+}
+
+//it is used to the max_height and max_width, which will be used later to find the maximum size of the rectangle(2D)  
+bool Compressor::hasRunAt(const std::vector<Run>& runs, int x, char label) {
+    for (const auto& run : runs) {
+        if (x >= run.x && x < run.x + run.len && run.label == label) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Efficient validation without full 3D array
@@ -259,6 +343,7 @@ void Compressor::validateCoverageEfficient(const std::vector<Cuboid>& cuboids, P
     }
 }
 
+// Print the block
 void Compressor::printCuboidsWithLegend(
     std::vector<Cuboid> &cuboids,
     std::unordered_map<char, std::string> &legend)
@@ -285,3 +370,7 @@ void Compressor::printCuboidsWithLegend(
                c.x, c.y, c.z, c.w, c.h, c.d, labelStr);
     }
 }
+
+// -----------ENDS HERE-------- ------------- //
+
+
