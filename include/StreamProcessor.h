@@ -49,6 +49,7 @@ class StreamProcessor {
 class StreamProcessor::ProcessorModule {
     public:
         virtual void passValues(StreamProcessor *sp) = 0;
+        virtual ~ProcessorModule(){};
 };
 
 class StreamProcessor::InputStreamReader : public StreamProcessor::ProcessorModule {
@@ -133,6 +134,7 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         void printSubBlock(SubBlock *sb);
 #ifdef WIN32
         void printSubBlock(HANDLE hStdout, SubBlock *sb);
+        void printSubBlocks(HANDLE hStdout, ParentBlock *pb);
 #endif
         void passBuffers(StreamBuffer *c_input_stream);
         void passValues(StreamProcessor *sp);
@@ -149,6 +151,12 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         int *parent_z;
         std::unordered_map<char, std::string> *tag_table;
         bool verbose = false;
+#ifdef WIN32
+        HANDLE hStdout;
+#endif
+        char *buffer;
+        int buf_size;
+        int stored;
 };
 
 class StreamProcessor::StreamBuffer {
@@ -166,11 +174,18 @@ class StreamProcessor::StreamBuffer {
         void **write_ptr;
         void **read_ptr;
         int buf_size;
-        int size_stored;
+        int write_size_stored;
+        int read_size_stored;
+        int num_read;
+        int num_write;
         int num_writers;
         int closed_writers;
+        int current_chunk;
 
-        std::mutex mutex;
+        std::mutex read_mutex;
+        std::mutex write_mutex;
+        std::mutex read_value_mutex;
+        std::mutex write_value_mutex;
         std::condition_variable write_cond;
         std::condition_variable read_cond;
 };

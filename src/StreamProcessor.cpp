@@ -10,30 +10,17 @@ StreamProcessor::StreamProcessor(int c_num_compressor_threads, int c_itoc_buf_si
     compressorThreads = (std::thread**)malloc(num_compressor_threads * sizeof(std::thread*));
 }
 
-StreamProcessor::StreamProcessor(int c_num_compressor_threads) : StreamProcessor(c_num_compressor_threads, 1024, 8192) {}
+StreamProcessor::StreamProcessor(int c_num_compressor_threads) : StreamProcessor(c_num_compressor_threads, 1024, 1024) {}
 
 StreamProcessor::StreamProcessor() : StreamProcessor(1) {}
 
 StreamProcessor::~StreamProcessor() {
-    for (int i = 0; i < num_compressor_threads; i++) {
-        compressorThreads[i]->join();
-        delete compressorThreads[i];
-    }
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "Compressor Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
-    }
-    displayOutputThread.join();
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "Output Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
-    }
     free(compressorThreads);
-    free(inputStreamReader);
-    free(compressor);
-    free(displayOutput);
-    free(inputToCompressorBuffer);
-    free(compressorToOutputBuffer);
+    delete (inputStreamReader);
+    delete (compressor);
+    delete (displayOutput);
+    delete (inputToCompressorBuffer);
+    delete (compressorToOutputBuffer);
 }
 
 void StreamProcessor::setup() {
@@ -43,11 +30,11 @@ void StreamProcessor::setup() {
         inputStreamReader->printHeader();
     compressor->passValues(this);
     displayOutput->passValues(this);
-    int itoc_buf_size = (x_count / parent_x) * (y_count / parent_y) * (z_count / parent_z);
-    if (itoc_buf_size > 512)
-        itoc_buf_size = 512;
-    inputToCompressorBuffer->setSize(itoc_buf_size);
-    compressorToOutputBuffer->setSize(itoc_buf_size * 256);
+    int streambuf_size = (x_count / parent_x) * (y_count * parent_y) * (z_count / parent_z);
+    if (streambuf_size >= 256000)
+        streambuf_size = 256000;
+    inputToCompressorBuffer->setSize(streambuf_size);
+    compressorToOutputBuffer->setSize(streambuf_size);
 }
 
 void StreamProcessor::start() {
@@ -71,9 +58,23 @@ void StreamProcessor::start() {
     }
     displayOutputThread = std::thread(&DisplayOutput::displayBlocks, displayOutput);
     inputStreamReader->processStream();
+
     if (verbose) {
         auto end = std::chrono::high_resolution_clock::now();
         std::cerr << "InputStreamReader Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
+    }
+    for (int i = 0; i < num_compressor_threads; i++) {
+        compressorThreads[i]->join();
+        delete compressorThreads[i];
+    }
+    if (verbose) {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cerr << "Compressor Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
+    }
+    displayOutputThread.join();
+    if (verbose) {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cerr << "Output Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
     }
 }
 
