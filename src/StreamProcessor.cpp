@@ -39,6 +39,7 @@ void StreamProcessor::setup() {
 
 void StreamProcessor::start() {
     setup();
+
     if (verbose) {
         fprintf(stderr, "[SP] Setup Complete\n");
         started = std::chrono::high_resolution_clock::now();

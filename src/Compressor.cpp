@@ -7,29 +7,8 @@ StreamProcessor::Compressor::Compressor()
 
 StreamProcessor::Compressor::~Compressor() {}
 
-void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
-{
-    for (size_t block_idx = 0; block_idx < parent_blocks.size(); ++block_idx)
-    {
-        std::cout << "=== Block " << block_idx << " ===\n";
 
-        for (size_t slice_idx = 0; slice_idx < parent_blocks[block_idx].size(); ++slice_idx)
-        {
-            std::cout << "Slice " << slice_idx << ":\n";
-            for (const auto &row : parent_blocks[block_idx][slice_idx])
-            {
-                for (char cell : row)
-                {
-                    printf("%c", cell);
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-        printf("-----\n");
-    }
-}
-// -----------ENDS HERE-------- ------------- //
+void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
 
 // -----------MAIN FUNCTIONS-------- -------- //
 void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
@@ -239,6 +218,7 @@ void StreamProcessor::Compressor::passValues(int *c_parent_x, int *c_parent_y, i
     parent_x = c_parent_x;
     parent_y = c_parent_y;
     parent_z = c_parent_z;
+
 
     tag_table = c_tag_table;
 }

@@ -8,14 +8,12 @@ class StreamProcessor {
         class Compressor;
         class DisplayOutput;
         class StreamBuffer;
-
         StreamProcessor();
         StreamProcessor(int c_num_compressor_threads);
         StreamProcessor(int c_num_compressor_threads, int c_itoc_buf_size, int c_ctoo_buf_size);
         ~StreamProcessor();
 
         void setVerbose(bool c_v);
-
         void setup();
         void start();
 
@@ -25,7 +23,6 @@ class StreamProcessor {
         DisplayOutput *displayOutput;
         StreamBuffer *inputToCompressorBuffer;
         StreamBuffer *compressorToOutputBuffer;
-
         std::chrono::time_point<std::chrono::high_resolution_clock> started;
         std::thread inputStreamReaderThread;
         std::thread **compressorThreads;
@@ -46,6 +43,7 @@ class StreamProcessor {
         // Tag table to map characters to strings
         std::unordered_map<char, std::string> tag_table;
 };
+
 
 //TODO Abstract class for Module
 class StreamProcessor::ProcessorModule {
@@ -80,7 +78,6 @@ class StreamProcessor::InputStreamReader : public StreamProcessor::ProcessorModu
     private:
         // Vectors to hold dimensions and tokens
         // vector<string> dims;
-
         // Header line and other variables
         // string header_line;
         // vector<string> slice;

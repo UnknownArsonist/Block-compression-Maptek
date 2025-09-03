@@ -22,7 +22,6 @@ void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
     write_ptr = buffer;
     read_ptr = buffer;
 }
-
 //TODO error check for when setSize hasnt been called and buffer = NULL
 int StreamProcessor::StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(read_mutex);
