@@ -96,7 +96,7 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
     }
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
     int current_chunk = 0;
-    ParentBlock **next_blocks = (ParentBlock**)malloc(sizeof(ParentBlock*) * (*x_count / *parent_x)*2);
+    ParentBlock **next_blocks = (ParentBlock**)malloc(sizeof(ParentBlock*) * num_parent_blocks);
     int current_count = 0;
     int next_count = 0;
 
@@ -104,7 +104,7 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
     stored = 0;
     buffer = (char*)malloc(sizeof(char) * buf_size);
 
-    ParentBlock *parent_block;
+    ParentBlock *parent_block = nullptr;
     do {
         input_stream->pop((void **)&parent_block);
 
@@ -120,6 +120,7 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
             delete parent_block;
             current_count++;
             if (current_count >= num_parent_blocks) {
+                //fprintf(stderr, "cc: %d\n", current_chunk);
                 current_chunk++;
                 int p_count = 0;
                 for (int i = 0; i < next_count; i++) {
@@ -137,6 +138,9 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
                 next_count = next_count - p_count;
             }
         } else {
+            if (next_count >= num_parent_blocks) {
+                fprintf(stderr, "next_block = %d / %d\n", next_count, num_parent_blocks);
+            }
             next_blocks[next_count] = parent_block;
             next_count++;
         }
@@ -146,6 +150,7 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
         WriteFile(hStdout, buffer, stored, NULL, NULL);
         stored = 0;
     }
+    free(next_blocks);
     free(buffer);
     CloseHandle(hStdout);
 }

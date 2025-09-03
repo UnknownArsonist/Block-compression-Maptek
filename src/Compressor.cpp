@@ -191,8 +191,8 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
             }
             // y = 1
         }
-        output_stream->push((void **)&parent_block);
         free(parent_block->block);
+        output_stream->push((void **)&parent_block);
     }
     /* SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
     int chunk = (parent_block->z / *parent_y);
@@ -217,7 +217,7 @@ void StreamProcessor::Compressor::compressStream()
         //fprintf(stderr, "Compressor: get val\n");
         input_stream->pop((void **)&parent_block);
 
-        if (parent_block == NULL)
+        if (parent_block == nullptr)
         {
             //fprintf(stderr, "IN TO COMP END\n");
             output_stream->push(NULL);
