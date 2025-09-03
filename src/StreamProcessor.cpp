@@ -16,11 +16,11 @@ StreamProcessor::StreamProcessor() : StreamProcessor(1) {}
 
 StreamProcessor::~StreamProcessor() {
     free(compressorThreads);
-    free(inputStreamReader);
-    free(compressor);
-    free(displayOutput);
-    free(inputToCompressorBuffer);
-    free(compressorToOutputBuffer);
+    delete (inputStreamReader);
+    delete (compressor);
+    delete (displayOutput);
+    delete (inputToCompressorBuffer);
+    delete (compressorToOutputBuffer);
 }
 
 void StreamProcessor::setup() {

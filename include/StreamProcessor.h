@@ -51,6 +51,7 @@ class StreamProcessor {
 class StreamProcessor::ProcessorModule {
     public:
         virtual void passValues(StreamProcessor *sp) = 0;
+        virtual ~ProcessorModule(){};
 };
 
 class StreamProcessor::InputStreamReader : public StreamProcessor::ProcessorModule {
@@ -153,6 +154,9 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         int *parent_z;
         std::unordered_map<char, std::string> *tag_table;
         bool verbose = false;
+#ifdef WIN32
+        HANDLE hStdout;
+#endif
         char *buffer;
         int buf_size;
         int stored;
@@ -164,7 +168,46 @@ class StreamProcessor::StreamBuffer {
         StreamBuffer(int c_num_writers);
         ~StreamBuffer();
         int pop(void **buf);
+        template <class Predicate>
+        int pop_next(void **buf, Predicate pred) {
+            std::unique_lock<std::mutex> lock(mutex);
+            if (*read_ptr == nullptr && size_stored > 0) {
+                *buf = nullptr;
+                return -1;
+            }
+            void **t_ptr = (void**)malloc(size_stored * sizeof(void*));
+            void **r_ptr = read_ptr;
+            for (int i = 0; i < size_stored; i++) {
+                if (pred(*r_ptr)) {
+                    *buf = *r_ptr;
+                    read_ptr++;
+                    //fprintf(stderr, "[%d] %p %p %d %d  %d\n", i, read_ptr + i*sizeof(void*), &(buffer[buf_size]), (read_ptr + (i*sizeof(void*)) - &(buffer[buf_size])), (&(buffer[buf_size]) - read_ptr), rem);
+                    //fprintf(stderr, "current_chunk %d pbc: %d, (%d, %d, %d)\n", current_chunk, (int)(((ParentBlock*)pb)->z / *parent_z), ((ParentBlock*)pb)->x, ((ParentBlock*)pb)->y, ((ParentBlock*)pb)->z);
+                    int start = read_ptr - buffer;
+                    int rem = (i * sizeof(void*));
+                    //fprintf(stderr, "[%d] s: %d, e: %d, siz: %d\n", i, start, buf_size-1, i*sizeof(void*));
+                    if (start + rem >= buf_size) {
+                        int left = start + rem - buf_size;
+                        memcpy(buffer, t_ptr + rem, left);
+                    }
+                    memcpy(read_ptr, t_ptr, rem);
+                    free(t_ptr);
+                    return 1;
+                }
+                t_ptr[i] = *r_ptr;
+                r_ptr++;
+                if (r_ptr >= &(buffer[buf_size])) {
+                    r_ptr = buffer;
+                }
+            }
+            free(t_ptr);
+            return 0;
+        };
+        void peek_next(void **buf);
         int push(void **buf);
+        void setCurrentChunk(int cc);
+        int getCurrentChunk();
+        int getStored();
         void setSize(int c_buf_size);
         void printBuffer();
 
@@ -176,8 +219,10 @@ class StreamProcessor::StreamBuffer {
         int size_stored;
         int num_writers;
         int closed_writers;
+        int current_chunk;
 
         std::mutex mutex;
+        std::mutex read_mutex;
         std::condition_variable write_cond;
         std::condition_variable read_cond;
 };

@@ -4,11 +4,14 @@ StreamProcessor::StreamBuffer::StreamBuffer(int c_num_writers) {
     num_writers = c_num_writers;
     closed_writers = 0;
     size_stored = 0;
+    current_chunk = 0;
 }
 
 StreamProcessor::StreamBuffer::StreamBuffer() : StreamBuffer(1) {}
 
-StreamProcessor::StreamBuffer::~StreamBuffer() {}
+StreamProcessor::StreamBuffer::~StreamBuffer() {
+    free(buffer);
+}
 
 void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
     buffer = (void**)malloc(c_buf_size * sizeof(void*));
@@ -19,9 +22,10 @@ void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
 
 //TODO error check for when setSize hasnt been called and buffer = NULL
 int StreamProcessor::StreamBuffer::pop(void **buf) {
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::mutex> lock(read_mutex);
 
     // Wait until there's data available
+    //fprintf(stderr, "Pop: %d\n", size_stored);
     read_cond.wait(lock, [this]{ return (size_stored > 0); });
     //fprintf(stderr, "pop val, Stored: %d / %d\n", size_stored, buf_size);
     /* while (size_stored <= 0) {
@@ -32,7 +36,7 @@ int StreamProcessor::StreamBuffer::pop(void **buf) {
 
     if (*read_ptr == nullptr && size_stored > 0) {
         *buf = nullptr;
-        return 0;
+        return -1;
     }
 
     *buf = *read_ptr;
@@ -52,7 +56,6 @@ int StreamProcessor::StreamBuffer::pop(void **buf) {
 
 int StreamProcessor::StreamBuffer::push(void **buf) {
     std::unique_lock<std::mutex> lock(mutex);
-
     //fprintf(stderr, "push val Stored: %d / %d\n", size_stored, buf_size);
     if (buf == NULL) {
         closed_writers++;
@@ -94,6 +97,35 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
     size_stored++;
     read_cond.notify_all();
     return 1;
+}
+
+//Testing may not keep
+void StreamProcessor::StreamBuffer::peek_next(void **buf) {
+    std::unique_lock<std::mutex> lock(mutex);
+    
+    read_cond.wait(lock, [this]{ return (size_stored > 0); });
+
+    if (*read_ptr == nullptr && size_stored > 0) {
+        *buf = nullptr;
+        return;
+    }
+    *buf = *read_ptr;
+}
+
+void StreamProcessor::StreamBuffer::setCurrentChunk(int cc) {
+    std::unique_lock<std::mutex> lock(mutex);
+    current_chunk = cc;
+    write_cond.notify_all();
+}
+
+int StreamProcessor::StreamBuffer::getCurrentChunk() {
+    std::unique_lock<std::mutex> lock(mutex);
+    return current_chunk;
+}
+
+int StreamProcessor::StreamBuffer::getStored() {
+    std::unique_lock<std::mutex> lock(mutex);
+    return size_stored;
 }
 
 void StreamProcessor::StreamBuffer::printBuffer() {
