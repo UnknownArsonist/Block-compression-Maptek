@@ -96,7 +96,7 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
     }
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
     int current_chunk = 0;
-    ParentBlock **next_blocks = (ParentBlock**)malloc(sizeof(ParentBlock*) * num_parent_blocks);
+    ParentBlock **next_blocks = (ParentBlock**)malloc(sizeof(ParentBlock*) * num_parent_blocks * 2);
     int current_count = 0;
     int next_count = 0;
 
