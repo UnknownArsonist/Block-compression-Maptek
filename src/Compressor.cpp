@@ -8,7 +8,7 @@ StreamProcessor::Compressor::Compressor()
 StreamProcessor::Compressor::~Compressor() {}
 
 
-void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
+void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks) {}
 
 // -----------MAIN FUNCTIONS-------- -------- //
 void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
