@@ -1,5 +1,4 @@
 #include "StreamProcessor.h"
-#include "OctTreeNode.h"
 
 // Constructor & Deconstructor
 StreamProcessor::Compressor::Compressor() {}
@@ -25,57 +24,6 @@ void StreamProcessor::Compressor::passBuffers(StreamBuffer *c_input_stream, Stre
 // -----------ENDS HERE-------- ------------- //
 
 // -----------MAIN FUNCTIONS-------- -------- //
-// Algorithm 1
-void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
-{
-    // Check if the parent block is uniform first
-    OctTreeNode octTree;
-    char uniformTag;
-    if (octTree.isUniform(parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z, uniformTag))
-    {
-        // If uniform, output a single block
-        SubBlock *sb = (SubBlock *)malloc(sizeof(SubBlock));
-        sb->x = parent_block->x;
-        sb->y = parent_block->y;
-        sb->z = parent_block->z;
-        sb->l = *parent_x;
-        sb->w = *parent_y;
-        sb->h = *parent_z;
-        sb->tag = uniformTag;
-
-        output_stream->push((void **)&sb);
-        free(parent_block);
-        return;
-    }
-
-    // Only use octree for non-uniform blocks
-    OctTreeNode *root = octTree.buildContentDriven3D(*parent_block, 0, 0, 0, *parent_x, *parent_y, *parent_z);
-
-    std::vector<SubBlock> subBlocks;
-    octTree.collectSubBlocks(root, subBlocks, tag_table, parent_block->x, parent_block->y, parent_block->z);
-
-    std::vector<SubBlock> mergedBlocks = octTree.mergeSubBlocks(subBlocks);
-
-    // Limit the number of output blocks (safety check)
-    const size_t MAX_BLOCKS_PER_PARENT = 256; // Adjust as needed
-    if (mergedBlocks.size() > MAX_BLOCKS_PER_PARENT)
-    {
-        // Fall back to simpler compression if octree produces too many blocks
-        processParentBlocks(parent_block);
-    }
-    else
-    {
-        for (auto &sb : mergedBlocks)
-        {
-            SubBlock *out = (SubBlock *)malloc(sizeof(SubBlock));
-            *out = sb;
-            output_stream->push((void **)&out);
-        }
-    }
-
-    octTree.deleteTree(root);
-    free(parent_block);
-}
 
 // Algorithm 2
 void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)

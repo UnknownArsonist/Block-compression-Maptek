@@ -113,9 +113,6 @@ public:
     // StartUp function
     void compressStream();
 
-    // Algorithm 1
-    void OctreeCompression(ParentBlock *parent_block);
-
     // Algorithm 2
     void processParentBlocks(ParentBlock *parent_block);
 
