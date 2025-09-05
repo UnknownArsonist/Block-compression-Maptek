@@ -1,53 +1,71 @@
 ########################################################################
-####################### Makefile for Windows ##########################
+####################### Makefile Template ##############################
 ########################################################################
 
-# Compiler settings
-CC = x86_64-w64-mingw32-g++        # 64-bit Windows compiler
-CXXFLAGS = -std=c++11 -Wall -Iinclude -static
+# Compiler settings - Can be customized.
+CC = g++
+CXXFLAGS = -Wall -Iinclude -pthread -static
 LDFLAGS = 
 
-# Makefile settings
+# Makefile settings - Can be customized.
 APPNAME = myapp
 EXT = .cpp
 SRCDIR = ./src
 OBJDIR = ./obj
-EXE = .exe
 
 ############## Do not change anything from here downwards! #############
 SRC = $(wildcard $(SRCDIR)/*$(EXT))
 OBJ = $(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)/%.o)
-
-# Windows-compatible remove command
-RM = del /Q /F
+DEP = $(OBJ:$(OBJDIR)/%.o=%.d)
+# UNIX-based OS variables & settings
+RM = rm
+DELOBJ = $(OBJ)
+# Windows OS variables & settings
+DEL = del
+EXE = .exe
+WDELOBJ = $(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)\\%.o)
 
 ########################################################################
 ####################### Targets beginning here #########################
 ########################################################################
 
-all: $(APPNAME)$(EXE)
+all: $(APPNAME)
 
-# Create obj directory if it doesn't exist
-$(OBJDIR):
-	@if not exist "$(OBJDIR)" mkdir "$(OBJDIR)"
+# Builds the app
+$(APPNAME): $(OBJ)
+	$(CC) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-# Build the application
-$(APPNAME)$(EXE): $(OBJDIR) $(OBJ)
-	$(CC) $(CXXFLAGS) -o $@ $(OBJ) $(LDFLAGS)
+win:
+	g++ -Wall -Iinclude -pthread -static -o myapp.exe src/Compressor.cpp src/DisplayOutput.cpp src/StreamProcessor.cpp src/StreamBuffer.cpp src/OctTreeNode.cpp src/InputStreamReader.cpp src/ProcessorModule.cpp src/main.cpp
 
-# Build object files
+win-test:
+	$(CC) $(CXXFLAGS) -o myapp_test.exe src/Compressor.cpp src/DisplayOutput.cpp src/StreamProcessor.cpp src/StreamBuffer.cpp src/OctTreeNode.cpp src/InputStreamReader.cpp src/ProcessorModule.cpp src/test.cpp
+
+# Includes all .h files
+-include $(DEP)
+
+# Building rule for .o files and its .c/.cpp in combination with all .h
 $(OBJDIR)/%.o: $(SRCDIR)/%$(EXT)
-	$(CC) $(CXXFLAGS) -c $< -o $@
+	$(CC) $(CXXFLAGS) -o $@ -c $<
 
-################### Cleaning rules ###################
-.PHONY: clean cleandep all
-
-
-# Clean complete project
+################### Cleaning rules for Unix-based OS ###################
+# Cleans complete project
+.PHONY: clean
 clean:
-	-$(RM) "$(OBJDIR)\*.o"
-	-$(RM) "$(APPNAME)$(EXE)"
+	$(RM) $(DELOBJ) $(DEP) $(APPNAME)
 
-# Clean only object files
+# Cleans only all files with the extension .d
+.PHONY: cleandep
 cleandep:
-	-$(RM) "$(OBJDIR)\*.o"
+	$(RM) $(DEP)
+
+#################### Cleaning rules for Windows OS #####################
+# Cleans complete project
+.PHONY: cleanw
+cleanw:
+	$(DEL) $(WDELOBJ) $(DEP) $(APPNAME)$(EXE)
+
+# Cleans only all files with the extension .d
+.PHONY: cleandepw
+cleandepw:
+	$(DEL) $(DEP)

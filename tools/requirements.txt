@@ -1,0 +1,14 @@
+# Requirements for 3D model processing and visualization tools
+trimesh>=3.20.0
+numpy>=1.21.0
+matplotlib>=3.5.0
+pillow>=8.0.0
+networkx>=2.6.0  # Required by trimesh
+
+# Optional: For advanced 3D processing
+# open3d>=0.16.0
+# pyvista>=0.40.0
+
+# For mesh file format support
+# pygltflib>=1.15.0  # For GLTF files
+# pymeshlab>=2022.2  # For advanced mesh processing

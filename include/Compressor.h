@@ -11,10 +11,6 @@ private:
     int *parent_y;
     int *parent_z;
 
-    int mx;
-    int my;
-    int mz;
-
     StreamBuffer *input_stream;
     StreamBuffer *output_stream;
     std::unordered_map<char, std::string> *tagTable;
@@ -23,20 +19,27 @@ private:
 public:
     Compressor();
     ~Compressor();
+
+    // algorithms
+    void OctreeCompression(ParentBlock *parent_block);
+
+    // helper function
+    void processParentBlocks(ParentBlock *parent_block);
+    void printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks);
     void compressStream();
-    void passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tagtable, int mx_count, int my_count, int mz_count);
+    void passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *tagtable);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
     // --------------------------// -------------------------
-    bool hasRunAt(const std::vector<Run>& runs, int x, char label);
+    bool hasRunAt(const std::vector<Run> &runs, int x, char label);
 
     std::vector<Cuboid> compressParentBlock(ParentBlock *pb,
                                             int parent_x, int parent_y, int parent_z);
     void printCuboidsWithLegend(std::vector<Cuboid> &cuboids,
-                                     std::unordered_map<char, std::string> &legend);
-    
-    void validateCoverageEfficient(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
-                     int parent_x, int parent_y, int parent_z);
+                                std::unordered_map<char, std::string> &legend);
 
-    void validate3DCoverage(const std::vector<Cuboid>& cuboids, ParentBlock* pb,
+    void validateCoverageEfficient(const std::vector<Cuboid> &cuboids, ParentBlock *pb,
                                    int parent_x, int parent_y, int parent_z);
+
+    void validate3DCoverage(const std::vector<Cuboid> &cuboids, ParentBlock *pb,
+                            int parent_x, int parent_y, int parent_z);
 };

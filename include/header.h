@@ -11,6 +11,11 @@
 #include <stack>
 #include <algorithm>
 
+#include <condition_variable>
+#include <chrono>
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 struct SubBlock
 {
@@ -29,6 +34,9 @@ struct ParentBlock
     int y;
     int z;
     char *block;
+    char first;
+    SubBlock **sub_blocks;
+    int sub_block_num;
 };
 
 struct Rect
@@ -43,7 +51,8 @@ struct Run
     char label;
 };
 
-struct OptimalRect {
+struct OptimalRect
+{
     int x, y, w, h;
     char label;
 };

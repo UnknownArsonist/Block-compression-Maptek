@@ -1,31 +1,27 @@
-#include "../include/StreamProcessor.h"
-#include "../include/InputStreamReader.h"
-#include <signal.h>
+#include "StreamProcessor.h"
 /* NOTES:
     Could use fwrite from <cstdio> instead of printf for output to stdout (more efficient)
 */
 
-void signal_handler(int sig)
+int main(int argc, char **argv)
 {
- 
-    // get void*'s for all entries on the stack
-    //size = backtrace(array, 10);
+    int num_compress_threads = 1;
+    if (argc > 1)
+    {
+        int c = atoi(argv[1]);
+        if (c >= 1 && c <= 16)
+        {
+            num_compress_threads = c;
+        }
+    }
+    StreamProcessor *processor = new StreamProcessor(num_compress_threads);
 
-    // print out all the frames to stderr
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    //backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
-}
+    processor->setVerbose(true);
+    // Enable the actual compression pipeline
+    processor->start();
 
-int main()
-{
-    // Install signal handlers for debugging
-    signal(SIGSEGV, signal_handler);
-    signal(SIGABRT, signal_handler);
-
-    StreamProcessor processor;
-    // processor.setVerbose(true);
-    processor.start();
-    processor.end();
+    // Uncomment to test with hardcoded data
+    // compressor.compressParentBlock();
+    delete processor;
     return 0;
 }
