@@ -9,12 +9,13 @@ class StreamProcessor {
         class DisplayOutput;
         class StreamBuffer;
         StreamProcessor();
+        StreamProcessor(int c_num_compressor_threads);
+        StreamProcessor(int c_num_compressor_threads, int c_itoc_buf_size, int c_ctoo_buf_size);
         ~StreamProcessor();
 
         void setVerbose(bool c_v);
         void setup();
         void start();
-        void end();
 
     private:
         InputStreamReader *inputStreamReader;
@@ -24,9 +25,10 @@ class StreamProcessor {
         StreamBuffer *compressorToOutputBuffer;
         std::chrono::time_point<std::chrono::high_resolution_clock> started;
         std::thread inputStreamReaderThread;
-        std::thread compressorThread;
+        std::thread **compressorThreads;
         std::thread displayOutputThread;
         bool verbose = false;
+        int num_compressor_threads;
 
         // Dimensions of the 3D block
         int x_count;
@@ -47,6 +49,7 @@ class StreamProcessor {
 class StreamProcessor::ProcessorModule {
     public:
         virtual void passValues(StreamProcessor *sp) = 0;
+        virtual ~ProcessorModule(){};
 };
 
 class StreamProcessor::InputStreamReader : public StreamProcessor::ProcessorModule {
@@ -129,6 +132,10 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         ~DisplayOutput();
         void displayBlocks();
         void printSubBlock(SubBlock *sb);
+#ifdef WIN32
+        void printSubBlock(HANDLE hStdout, SubBlock *sb);
+        void printSubBlocks(HANDLE hStdout, ParentBlock *pb);
+#endif
         void passBuffers(StreamBuffer *c_input_stream);
         void passValues(StreamProcessor *sp);
         void passValues(std::unordered_map<char, std::string> *c_tag_table);
@@ -136,17 +143,30 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         
     private:
         StreamProcessor::StreamBuffer *input_stream;
+        int *x_count;
+        int *y_count;
+        int *z_count;
+        int *parent_x;
+        int *parent_y;
+        int *parent_z;
         std::unordered_map<char, std::string> *tag_table;
         bool verbose = false;
+#ifdef WIN32
+        HANDLE hStdout;
+#endif
+        char *buffer;
+        int buf_size;
+        int stored;
 };
 
 class StreamProcessor::StreamBuffer {
     public:
         StreamBuffer();
+        StreamBuffer(int c_num_writers);
         ~StreamBuffer();
-        void setSize(int buffer_size);
         int pop(void **buf);
         int push(void **buf);
+        void setSize(int c_buf_size);
         void printBuffer();
 
     private:
@@ -154,7 +174,18 @@ class StreamProcessor::StreamBuffer {
         void **write_ptr;
         void **read_ptr;
         int buf_size;
-        int size_stored;
+        int write_size_stored;
+        int read_size_stored;
+        int num_read;
+        int num_write;
+        int num_writers;
+        int closed_writers;
+        int current_chunk;
 
-        std::mutex mutex;
+        std::mutex read_mutex;
+        std::mutex write_mutex;
+        std::mutex read_value_mutex;
+        std::mutex write_value_mutex;
+        std::condition_variable write_cond;
+        std::condition_variable read_cond;
 };

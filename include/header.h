@@ -8,7 +8,11 @@
 #include <thread>
 #include <cstring>
 #include <mutex>
+#include <condition_variable>
 #include <chrono>
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 struct SubBlock {
     int x;
@@ -25,4 +29,7 @@ struct ParentBlock {
     int y;
     int z;
     char *block;
+    char first;
+    SubBlock **sub_blocks;
+    int sub_block_num;
 };
