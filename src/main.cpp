@@ -5,7 +5,8 @@
 
 int main(int argc, char **argv)
 {
-    int num_compress_threads = 1;
+    // optimum threads is 2
+    int num_compress_threads = 2;
     if (argc > 1)
     {
         int c = atoi(argv[1]);
