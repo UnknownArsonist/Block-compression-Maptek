@@ -79,7 +79,7 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
                 char target = parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + z];
 
                 // Determine max size in X
-                int maxX = x; // 0 1 7
+                int maxX = x + 1; // 0 1 7
                 while (maxX < *parent_x && parent_block->block[(maxX * *parent_y * *parent_z) + (y * *parent_z) + z] == target && !visited[z][y][maxX])
                     maxX++; // 1 7
 
@@ -103,11 +103,11 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
                 }
 
                 // Determine max size in Z
-                int maxZ = z;
-                bool uniformZ = true;
+                int maxZ = z + 1;
                 // checks the subblocks, are they uniform and did we alreadly visit them.
-                while (maxZ < *parent_z && uniformZ)
+                while (maxZ < *parent_z)
                 {
+                    bool uniformZ = true;
                     // y = 0 maxY = 1
                     for (int yi = y; yi < maxY; yi++)
                     {
@@ -123,16 +123,15 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
                         if (!uniformZ)
                             break;
                     }
-                    if (uniformZ)
-                        // maxZ = 2 /*breaks the loop
-                        maxZ++;
+                    if (!uniformZ)
+                        break;
+                    maxZ++;
                 }
 
                 // Mark all as visited
                 for (int zz = z; zz < maxZ; zz++)
                     for (int yy = y; yy < maxY; yy++)
                         for (int xx = x; xx < maxX; xx++)
-                            // storing the character into the visited array
                             visited[zz][yy][xx] = true;
 
                 // Output the packed block
@@ -168,11 +167,12 @@ void StreamProcessor::Compressor::compressStream()
         input_stream->pop((void **)&parent_block);
 
         if (parent_block == nullptr)
-        {
-            // fprintf(stderr, "IN TO COMP END\n");
-            output_stream->push(NULL);
-            break;
-        }
+            if (parent_block == nullptr)
+            {
+                // fprintf(stderr, "IN TO COMP END\n");
+                output_stream->push(NULL);
+                break;
+            }
 
         block_count++;
 
