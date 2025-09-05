@@ -80,6 +80,7 @@ void StreamProcessor::Compressor::passValues(StreamProcessor *sp)
     input_stream = (sp->inputToCompressorBuffer);
     output_stream = (sp->compressorToOutputBuffer);
 }
+
 void StreamProcessor::Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
 {
     input_stream = c_input_stream;
