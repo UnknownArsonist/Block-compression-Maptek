@@ -26,43 +26,20 @@ void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
 int StreamProcessor::StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(read_mutex);
 
-    // Wait until there's data available
-    //fprintf(stderr, "Pop: %d\n", size_stored);
-    if (read_size_stored == 0) {
-        //fprintf(stderr, "read = 0\n");
-        std::unique_lock<std::mutex> write_lock(write_value_mutex);
+    if (read_ptr->prev == nullptr) {
+        std::unique_lock<std::mutex> write_lock(write_mutex);
         read_cond.wait(write_lock, [this]{
-            read_size_stored += num_write;
-            num_write = 0;
-            return (read_size_stored > 0);
+            return (read_ptr != nullptr);
         });
     }
-    //fprintf(stderr, "pop val, Stored: %d / %d\n", read_size_stored, buf_size);
-    /* while (size_stored <= 0) {
-        lock.unlock();
-        std::this_thread::yield();
-        lock.lock();
-    } */
 
-    if (*read_ptr == nullptr && read_size_stored > 0) {
+    if (read_ptr->value == nullptr) {
         *buf = nullptr;
         return -1;
     }
 
     *buf = *read_ptr;
     read_ptr++;
-    //fprintf(stderr, "  %p\n", read_ptr);
-
-    // Fix: Use modulo arithmetic for circular buffer
-    if (read_ptr >= &(buffer[buf_size])) {
-        read_ptr = buffer;
-    }
-
-    read_value_mutex.lock();
-    read_size_stored--;
-    num_read++;
-    read_value_mutex.unlock();
-    write_cond.notify_all();
 
     return 1;
 }
@@ -79,37 +56,23 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
     } else {
         val = *buf;
     }
-
-    // Wait until there's space available
-    /* if (size_stored >= buf_size-1 && buf_size > 8000)
-        fprintf(stderr, "  Stored: %d / %d\n", size_stored, buf_size); */
-    if (write_size_stored >= buf_size-1) {
-        std::unique_lock<std::mutex> read_lock(read_value_mutex);
-        write_cond.wait(read_lock, [this]{
-            write_size_stored -= num_read;
-            num_read = 0;
-            return (write_size_stored < buf_size-1);
-        });
-    }
     //fprintf(stderr, "push val Stored: %d / %d\n", write_size_stored, buf_size);
     /* while (size_stored >= buf_size-1) {
         lock.unlock();
         std::this_thread::yield();
         lock.lock();
     } */
+    item *prev_ptr = write_ptr;
 
-    *write_ptr = val;
-    write_ptr++;
+    item *new_item = (item*)malloc(sizeof(item));
+    new_item->value = val;
+    new_item->prev_item = write_ptr;
+    new_item->next_item = nullptr;
+    
+    write_ptr->next_item = new_item;
+    write_ptr = new_item;
     // Fix: Use modulo arithmetic for circular buffer
-    if (write_ptr >= &(buffer[buf_size])) {
-        write_ptr = buffer;
-    }
-
-    write_value_mutex.lock();
-    write_size_stored++;
-    num_write++;
-    //fprintf(stderr, "ws: %d\n", write_size_stored);
-    write_value_mutex.unlock();
+    
     read_cond.notify_all();
     return 1;
 }
