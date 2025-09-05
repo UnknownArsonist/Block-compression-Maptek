@@ -5,6 +5,25 @@
 StreamProcessor::Compressor::Compressor() {}
 StreamProcessor::Compressor::~Compressor() {}
 
+// -----------HELPER FUNCTIONS ------------- //
+void StreamProcessor::Compressor::passValues(StreamProcessor *sp)
+{
+
+    parent_x = &(sp->parent_x);
+    parent_y = &(sp->parent_y);
+    parent_z = &(sp->parent_z);
+    tag_table = &(sp->tag_table);
+    input_stream = (sp->inputToCompressorBuffer);
+    output_stream = (sp->compressorToOutputBuffer);
+}
+
+void StreamProcessor::Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
+{
+    input_stream = c_input_stream;
+    output_stream = c_output_stream;
+}
+// -----------ENDS HERE-------- ------------- //
+
 // -----------MAIN FUNCTIONS-------- -------- //
 // Algorithm 1
 void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
@@ -83,33 +102,5 @@ void StreamProcessor::Compressor::compressStream()
         processParentBlocks(parent_block);
 
     } while (parent_block != NULL);
-}
-// -----------ENDS HERE-------- ------------- //
-
-// -----------HELPER FUNCTIONS ------------- //
-void StreamProcessor::Compressor::passValues(int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table)
-{
-    parent_x = c_parent_x;
-    parent_y = c_parent_y;
-    parent_z = c_parent_z;
-
-    tag_table = c_tag_table;
-}
-
-void StreamProcessor::Compressor::passValues(StreamProcessor *sp)
-{
-
-    parent_x = &(sp->parent_x);
-    parent_y = &(sp->parent_y);
-    parent_z = &(sp->parent_z);
-    tag_table = &(sp->tag_table);
-    input_stream = (sp->inputToCompressorBuffer);
-    output_stream = (sp->compressorToOutputBuffer);
-}
-
-void StreamProcessor::Compressor::passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream)
-{
-    input_stream = c_input_stream;
-    output_stream = c_output_stream;
 }
 // -----------ENDS HERE-------- ------------- //
