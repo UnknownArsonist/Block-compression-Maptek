@@ -143,12 +143,13 @@ static void validateCoverageEfficient(const std::vector<Cuboid> &cuboids, Parent
 }
 
 // Print the block
-static void printCuboidsWithLegend(
+void StreamProcessor::Compressor::printCuboidsWithLegend(
     std::vector<Cuboid> &cuboids,
     std::unordered_map<char, std::string> &legend)
 {
     for (const auto &c : cuboids)
     {
+        /*
         // Normalize the label (ensure unsigned->signed conversion)
         char lookupKey = static_cast<char>(static_cast<unsigned char>(c.label));
 
@@ -165,9 +166,21 @@ static void printCuboidsWithLegend(
                 val.pop_back();
             labelStr = val.c_str();
         }
+        */
+        SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+        sub_block->x = c.x;
+        sub_block->y = c.y;
+        sub_block->z = c.z;
+        sub_block->l = c.w;
+        sub_block->w = c.h;
+        sub_block->h = c.d;
+        sub_block->tag = c.label;
 
+        output_stream->push((void **)&sub_block);
+        /*
         printf("%d,%d,%d,%d,%d,%d,%s\n",
                c.x, c.y, c.z, c.w, c.h, c.d, labelStr);
+        */
     }
 }
 

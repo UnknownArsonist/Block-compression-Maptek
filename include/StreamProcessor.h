@@ -119,6 +119,7 @@ public:
     // Helper Functions
     void passValues(StreamProcessor *sp);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
+    void printCuboidsWithLegend(std::vector<Cuboid> &cuboids, std::unordered_map<char, std::string> &legend);
 
 private:
     // Parent Block dimensions
