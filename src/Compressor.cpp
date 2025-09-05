@@ -196,7 +196,7 @@ void StreamProcessor::Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
-        processParentBlocks(parent_block);
+        OctreeCompression(parent_block);
 
     } while (parent_block != NULL);
 }
