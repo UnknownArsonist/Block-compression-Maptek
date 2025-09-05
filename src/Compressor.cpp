@@ -56,21 +56,11 @@ void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
 
     std::vector<SubBlock> mergedBlocks = octTree.mergeSubBlocks(subBlocks);
 
-    // Limit the number of output blocks (safety check)
-    const size_t MAX_BLOCKS_PER_PARENT = 256; // Adjust as needed
-    if (mergedBlocks.size() > MAX_BLOCKS_PER_PARENT)
+    for (auto &sb : mergedBlocks)
     {
-        // Fall back to simpler compression if octree produces too many blocks
-        processParentBlocks(parent_block);
-    }
-    else
-    {
-        for (auto &sb : mergedBlocks)
-        {
-            SubBlock *out = (SubBlock *)malloc(sizeof(SubBlock));
-            *out = sb;
-            output_stream->push((void **)&out);
-        }
+        SubBlock *out = (SubBlock *)malloc(sizeof(SubBlock));
+        *out = sb;
+        output_stream->push((void **)&out);
     }
 
     octTree.deleteTree(root);
@@ -99,7 +89,7 @@ void StreamProcessor::Compressor::compressStream()
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
-        processParentBlocks(parent_block);
+        OctreeCompression(parent_block);
 
     } while (parent_block != NULL);
 }

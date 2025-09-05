@@ -33,6 +33,7 @@ public:
     // main functions
     OctTreeNode *build(ParentBlock &grid, int x0, int y0, int z0,
                        int sizeX, int sizeY, int sizeZ);
+
     OctTreeNode *buildContentDriven3D(ParentBlock &grid,
                                       int x0, int y0, int z0,
                                       int sizeX, int sizeY, int sizeZ);

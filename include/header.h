@@ -14,7 +14,8 @@
 #include <windows.h>
 #endif
 
-struct SubBlock {
+struct SubBlock
+{
     int x;
     int y;
     int z;
@@ -24,7 +25,8 @@ struct SubBlock {
     char tag;
 };
 
-struct ParentBlock {
+struct ParentBlock
+{
     int x;
     int y;
     int z;

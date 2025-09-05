@@ -4,7 +4,6 @@
 OctTreeNode::OctTreeNode(/* args */)
 {
     isleaf = false;
-    tag = 0;
     children[0] = nullptr;
     children[1] = nullptr;
     children[2] = nullptr;
@@ -173,7 +172,7 @@ OctTreeNode *OctTreeNode::buildContentDriven3D(ParentBlock &grid,
 
     // Step 1: Entire block uniform or below minimum size?
     if (isUniform(&grid, x0, y0, z0, sizeX, sizeY, sizeZ, tag) ||
-        (sizeX <= MIN_SIZE && sizeY <= MIN_SIZE && sizeZ <= MIN_SIZE))
+        (sizeX < MIN_SIZE && sizeY < MIN_SIZE && sizeZ < MIN_SIZE))
     {
         OctTreeNode *leaf = new OctTreeNode();
         leaf->x0 = x0;
