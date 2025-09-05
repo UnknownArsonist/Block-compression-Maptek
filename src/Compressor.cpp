@@ -1,16 +1,12 @@
 #include "StreamProcessor.h"
 #include "OctTreeNode.h"
 
-StreamProcessor::Compressor::Compressor()
-{
-}
-
+// Constructor & Deconstructor
+StreamProcessor::Compressor::Compressor() {}
 StreamProcessor::Compressor::~Compressor() {}
 
-
-void StreamProcessor::Compressor::printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks)
-
 // -----------MAIN FUNCTIONS-------- -------- //
+// Algorithm 1
 void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
 {
     // Check if the parent block is uniform first
@@ -61,18 +57,13 @@ void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
     octTree.deleteTree(root);
     free(parent_block);
 }
+
+// Algorithm 2
 void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 {
-    // std::cout << parent_block->block-
     int z = 0;
     while (z < *parent_z)
     {
-        /*
-        int parent_x = sub_blocks[0][0].size();
-        int parent_y = sub_blocks[0].size();
-        int parent_z = sub_blocks.size();
-        */
-
         // marks visited cells
         std::vector<std::vector<std::vector<bool>>> visited(
             *parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
@@ -165,31 +156,28 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
     free(parent_block);
 }
 
+// Compression Startup
 void StreamProcessor::Compressor::compressStream()
 {
     ParentBlock *parent_block;
-    char *null_ptr = NULL;
     int block_count = 0;
 
     do
     {
+        // fprintf(stderr, "Compressor: get val\n");
         input_stream->pop((void **)&parent_block);
 
-        if (parent_block == NULL)
+        if (parent_block == nullptr)
         {
-            output_stream->push((void **)&null_ptr);
+            // fprintf(stderr, "IN TO COMP END\n");
+            output_stream->push(NULL);
             break;
         }
 
         block_count++;
 
         // Safety check: if we've processed too many blocks, use simpler algorithm
-<<<<<<< HEAD
         processParentBlocks(parent_block);
-=======
-        OctreeCompression(parent_block);
-    
->>>>>>> a2ad81cb1398a5931628996c732e2f7e2326a7a8
 
     } while (parent_block != NULL);
 }
@@ -202,12 +190,12 @@ void StreamProcessor::Compressor::passValues(int *c_parent_x, int *c_parent_y, i
     parent_y = c_parent_y;
     parent_z = c_parent_z;
 
-
     tag_table = c_tag_table;
 }
 
-void StreamProcessor::Compressor::passValues(StreamProcessor *sp) {
-    
+void StreamProcessor::Compressor::passValues(StreamProcessor *sp)
+{
+
     parent_x = &(sp->parent_x);
     parent_y = &(sp->parent_y);
     parent_z = &(sp->parent_z);
