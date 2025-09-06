@@ -172,7 +172,6 @@ class StreamProcessor::StreamBuffer {
     private:
         struct item {
             void *value;
-            item *prev_item;
             item *next_item;
         };
 
@@ -180,10 +179,11 @@ class StreamProcessor::StreamBuffer {
         item *read_ptr;
         int num_writers;
         int closed_writers;
+        int num_write;
+        int read_size_stored;
 
         std::mutex read_mutex;
         std::mutex write_mutex;
-        std::mutex read_value_mutex;
         std::mutex write_value_mutex;
         std::condition_variable write_cond;
         std::condition_variable read_cond;
