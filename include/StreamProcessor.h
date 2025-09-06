@@ -170,21 +170,20 @@ class StreamProcessor::StreamBuffer {
         void printBuffer();
 
     private:
-        void **buffer;
-        void **write_ptr;
-        void **read_ptr;
-        int buf_size;
-        int write_size_stored;
-        int read_size_stored;
-        int num_read;
-        int num_write;
+        struct item {
+            void *value;
+            item *next_item;
+        };
+
+        item *write_ptr;
+        item *read_ptr;
         int num_writers;
         int closed_writers;
-        int current_chunk;
+        int num_write;
+        int read_size_stored;
 
         std::mutex read_mutex;
         std::mutex write_mutex;
-        std::mutex read_value_mutex;
         std::mutex write_value_mutex;
         std::condition_variable write_cond;
         std::condition_variable read_cond;
