@@ -151,7 +151,7 @@ void StreamProcessor::Compressor::printCuboidsWithLegend(
 {
     for (const auto &c : cuboids)
     {
-        /*
+        
         // Normalize the label (ensure unsigned->signed conversion)
         char lookupKey = static_cast<char>(static_cast<unsigned char>(c.label));
 
@@ -188,7 +188,7 @@ void StreamProcessor::Compressor::printCuboidsWithLegend(
         sub_block->tag = c.label;
         pb->sub_blocks[pb->sub_block_num] = sub_block;
         pb->sub_block_num++;
-        /*
+        
         printf("%d,%d,%d,%d,%d,%d,%s\n",
                c.x, c.y, c.z, c.w, c.h, c.d, labelStr);
 
@@ -196,7 +196,7 @@ void StreamProcessor::Compressor::printCuboidsWithLegend(
     free(parent_block->block);
     output_stream->push((void **)&parent_block);
 }
-    */
+*/
 
 // -----------ENDS HERE-------- ------------- //
 
@@ -205,7 +205,7 @@ void StreamProcessor::Compressor::printCuboidsWithLegend(
 void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
                                                       int parent_x, int parent_y, int parent_z)
 {
-    std::vector<Cuboid> cuboids;
+    
     if (pb->block == NULL)
     {
         pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock *));
@@ -223,7 +223,8 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
     }
     else
     {
-
+        pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*) * parent_x * parent_y * parent_z);
+        std::vector<Cuboid> cuboids;
         // Stage 1: compress along X (runs per row per slice)
         // 3D vector to tract each run in x-axis
         std::vector<std::vector<std::vector<Run>>> runs(
@@ -399,61 +400,24 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
                     d++;
                 }
                 // pushing the resut to cuboids to outputing the results
-                cuboids.push_back({pb->x + r.x, pb->y + r.y, pb->z + z, r.w, r.h, d, r.label});
+                //cuboids.push_back({pb->x + r.x, pb->y + r.y, pb->z + z, r.w, r.h, d, r.label});
+                SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+                sub_block->x = pb->x + r.x;
+                sub_block->y = pb->y + r.y;
+                sub_block->z = pb->z + z;
+                sub_block->l = r.w;
+                sub_block->w = r.h;
+                sub_block->h = d;
+                sub_block->tag =  r.label;
+                pb->sub_blocks[pb->sub_block_num] = sub_block;
+                pb->sub_block_num++;
                 // updating the current slice
                 processed_z[z][i] = true;
             }
         }
-        for (const auto &c : cuboids)
-        {
-            /*
-            // Normalize the label (ensure unsigned->signed conversion)
-            char lookupKey = static_cast<char>(static_cast<unsigned char>(c.label));
-
-            // Find in legend
-            auto it = legend.find(lookupKey);
-
-            // If not found, print "UNKNOWN"
-            const char *labelStr = "UNKNOWN";
-            if (it != legend.end())
-            {
-                // Remove any trailing '\r' for Windows CRLF
-                std::string val = it->second;
-                if (!val.empty() && val.back() == '\r')
-                    val.pop_back();
-                labelStr = val.c_str();
-            }
-
-            SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
-            sub_block->x = c.x;
-            sub_block->y = c.y;
-            sub_block->z = c.z;
-            sub_block->l = c.w;
-            sub_block->w = c.h;
-            sub_block->h = c.d;
-            sub_block->tag = c.label;
-            */
-            SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
-            sub_block->x = c.x;
-            sub_block->y = c.y;
-            sub_block->z = c.z;
-            sub_block->l = c.w;
-            sub_block->w = c.h;
-            sub_block->h = c.d;
-            sub_block->tag = c.label;
-            pb->sub_blocks[pb->sub_block_num] = sub_block;
-            pb->sub_block_num++;
-            /*
-            printf("%d,%d,%d,%d,%d,%d,%s\n",
-                   c.x, c.y, c.z, c.w, c.h, c.d, labelStr);
-            */
-        }
         free(pb->block);
         output_stream->push((void **)&pb);
-        return;
     }
-    free(pb->block);
-    output_stream->push((void **)&pb);
     // Fast validation (comment out for production)
     // validateCoverageEfficient(cuboids, pb, parent_x, parent_y, parent_z);
 }
@@ -480,7 +444,7 @@ void StreamProcessor::Compressor::compressStream()
 
         block_count++;
 
-        compressParentBlock(parent_block, *parent_x, *parent_y, *parent_z);
+        StreamProcessor::Compressor::compressParentBlock(parent_block, *parent_x, *parent_y, *parent_z);
         // printCuboidsWithLegend(Compressedcube, *tag_table);
     } while (parent_block != NULL);
 }
