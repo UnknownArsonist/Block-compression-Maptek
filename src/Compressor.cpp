@@ -205,7 +205,6 @@ void StreamProcessor::Compressor::printCuboidsWithLegend(
 void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
                                                       int parent_x, int parent_y, int parent_z)
 {
-    
     if (pb->block == NULL)
     {
         pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock *));
@@ -224,7 +223,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
     else
     {
         pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*) * parent_x * parent_y * parent_z);
-        std::vector<Cuboid> cuboids;
+        //std::vector<Cuboid> cuboids;
         // Stage 1: compress along X (runs per row per slice)
         // 3D vector to tract each run in x-axis
         std::vector<std::vector<std::vector<Run>>> runs(
