@@ -101,6 +101,7 @@ static bool hasRunAt(const std::vector<Run> &runs, int x, char label)
 }
 
 // Efficient validation without full 3D array
+/*
 static void validateCoverageEfficient(const std::vector<Cuboid> &cuboids, ParentBlock *pb,
                                       int parent_x, int parent_y, int parent_z)
 {
@@ -142,6 +143,7 @@ static void validateCoverageEfficient(const std::vector<Cuboid> &cuboids, Parent
         }
     }
 }
+*/
 
 // Print the block
 /*
@@ -202,8 +204,7 @@ void StreamProcessor::Compressor::printCuboidsWithLegend(
 
 // -----------MAIN FUNCTIONS-------- -------- //
 // Compression Algorithm
-void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
-                                                      int parent_x, int parent_y, int parent_z)
+void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
 {
     if (pb->block == NULL)
     {
@@ -212,9 +213,9 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
         sub_block->x = pb->x;
         sub_block->y = pb->y;
         sub_block->z = pb->z;
-        sub_block->l = parent_x;
-        sub_block->w = parent_y;
-        sub_block->h = parent_z;
+        sub_block->l = *parent_x;
+        sub_block->w = *parent_y;
+        sub_block->h = *parent_z;
         sub_block->tag = pb->first;
         pb->sub_blocks[0] = sub_block;
         pb->sub_block_num = 1;
@@ -222,30 +223,30 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
     }
     else
     {
-        pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*) * parent_x * parent_y * parent_z);
-        //std::vector<Cuboid> cuboids;
+        pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*) * *parent_x * *parent_y * *parent_z);
+        std::vector<Cuboid> cuboids;
         // Stage 1: compress along X (runs per row per slice)
         // 3D vector to tract each run in x-axis
         std::vector<std::vector<std::vector<Run>>> runs(
-            parent_z, std::vector<std::vector<Run>>(parent_y));
+            *parent_z, std::vector<std::vector<Run>>(*parent_y));
 
         // get index of the character of the the parent block
         auto idx = [&](int x, int y, int z)
         {
-            return z * parent_y * parent_x + y * parent_x + x;
+            return (x * *parent_y * *parent_z) + (y * *parent_z) + z;
         };
 
-        for (int z = 0; z < parent_z; z++)
+        for (int z = 0; z < *parent_z; z++)
         {
-            for (int y = 0; y < parent_y; y++)
+            for (int y = 0; y < *parent_y; y++)
             {
                 int x = 0;
-                while (x < parent_x)
+                while (x < *parent_x)
                 {
                     char label = pb->block[idx(x, y, z)]; // parent_block[0][0][0] (i.e the first character)
                     int len = 1;
                     // compares the nth character and (n + 1)th character
-                    while (x + len < parent_x && pb->block[idx(x + len, y, z)] == label)
+                    while (x + len < *parent_x && pb->block[idx(x + len, y, z)] == label)
                     {
                         len++; // increase len if they are equal
                     }
@@ -258,17 +259,17 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
         }
 
         // Stage 2: OPTIMAL rectangle finding with maximum area
-        std::vector<std::vector<Rect>> rects(parent_z);
+        std::vector<std::vector<Rect>> rects(*parent_z);
 
-        for (int z = 0; z < parent_z; z++)
+        for (int z = 0; z < *parent_z; z++)
         {
             // 2D boolean grid with size of parent_y * parent_x and setting the value to false
             // used for checking whether a character has been visited or not
             std::vector<std::vector<bool>> covered(
-                parent_y, std::vector<bool>(parent_x, false));
+                *parent_y, std::vector<bool>(*parent_x, false));
 
             // size of each slice of parent_block
-            int remaining_blocks = parent_x * parent_y;
+            int remaining_blocks = *parent_x * *parent_y;
 
             while (remaining_blocks > 0)
             {
@@ -276,9 +277,9 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
                 int max_area = 0;
 
                 // Find the largest possible rectangle starting from each uncovered position
-                for (int y = 0; y < parent_y; y++)
+                for (int y = 0; y < *parent_y; y++)
                 {
-                    for (int x = 0; x < parent_x; x++)
+                    for (int x = 0; x < *parent_x; x++)
                     {
                         if (covered[y][x])
                             continue;
@@ -298,7 +299,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
                             continue;
 
                         // Find maximum width at this row
-                        int max_width = parent_x - x;
+                        int max_width = *parent_x - x;
                         for (int dx = 0; dx < max_width; dx++)
                         {
                             if (covered[y][x + dx] || !hasRunAt(runs[z][y], x + dx, current_label))
@@ -309,7 +310,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
                         }
 
                         // Find maximum height with consistent width
-                        int max_height = parent_y - y;
+                        int max_height = *parent_y - y;
                         for (int dy = 0; dy < max_height; dy++)
                         {
                             for (int dx = 0; dx < max_width; dx++)
@@ -355,13 +356,13 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
         }
 
         // Stage 3: merge rectangles across slices into cuboids
-        std::vector<std::vector<bool>> processed_z(parent_z);
-        for (int z = 0; z < parent_z; z++)
+        std::vector<std::vector<bool>> processed_z(*parent_z);
+        for (int z = 0; z < *parent_z; z++)
         {
             processed_z[z].resize(rects[z].size(), false);
         }
 
-        for (int z = 0; z < parent_z; z++)
+        for (int z = 0; z < *parent_z; z++)
         {
             for (size_t i = 0; i < rects[z].size(); i++)
             {
@@ -373,7 +374,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb,
                 int d = 1;
 
                 // Check subsequent slices for identical rectangles
-                while (z + d < parent_z)
+                while (z + d < *parent_z)
                 {
                     bool found = false;
                     for (size_t j = 0; j < rects[z + d].size(); j++)
@@ -426,24 +427,24 @@ void StreamProcessor::Compressor::compressStream()
 {
     ParentBlock *parent_block;
     int block_count = 0;
-    std::vector<Cuboid> Compressedcube;
+    //std::vector<Cuboid> Compressedcube;
     // printTagTable(tagTable);
     do
     {
         // fprintf(stderr, "Compressor: get val\n");
         input_stream->pop((void **)&parent_block);
 
-        if (parent_block == nullptr)
-            if (parent_block == nullptr)
-            {
-                // fprintf(stderr, "IN TO COMP END\n");
-                output_stream->push(NULL);
-                break;
-            }
+        if (parent_block == nullptr){
+            
+            // fprintf(stderr, "IN TO COMP END\n");
+            output_stream->push(NULL);
+            break;
+        }
+            
 
         block_count++;
 
-        StreamProcessor::Compressor::compressParentBlock(parent_block, *parent_x, *parent_y, *parent_z);
+        StreamProcessor::Compressor::compressParentBlock(parent_block);
         // printCuboidsWithLegend(Compressedcube, *tag_table);
     } while (parent_block != NULL);
 }

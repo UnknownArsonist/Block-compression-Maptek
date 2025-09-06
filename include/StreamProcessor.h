@@ -115,13 +115,12 @@ public:
 
     // StartUp function
     void compressStream();
-    void compressParentBlock(ParentBlock *pb,
-                             int parent_x, int parent_y, int parent_z);
+    void compressParentBlock(ParentBlock *pb);
 
     // Helper Functions
     void passValues(StreamProcessor *sp);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
-    void printCuboidsWithLegend(std::vector<Cuboid> &cuboids, std::unordered_map<char, std::string> &legend);
+    void printCuboidsWithLegend(std::vector<Cuboid> cb);
 
 private:
     // Parent Block dimensions
