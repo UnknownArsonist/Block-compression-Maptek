@@ -115,6 +115,8 @@ public:
 
     // StartUp function
     void compressStream();
+    void compressParentBlock(ParentBlock *pb,
+                             int parent_x, int parent_y, int parent_z);
 
     // Helper Functions
     void passValues(StreamProcessor *sp);
