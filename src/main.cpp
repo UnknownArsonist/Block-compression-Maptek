@@ -6,7 +6,7 @@
 int main(int argc, char **argv)
 {
     // optimum threads is 2
-    int num_compress_threads = 2;
+    int num_compress_threads = 4;
     if (argc > 1)
     {
         int c = atoi(argv[1]);
@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     }
     StreamProcessor *processor = new StreamProcessor(num_compress_threads);
 
-    //processor->setVerbose(true);
+    processor->setVerbose(true);
     // Enable the actual compression pipeline
     processor->start();
 

@@ -1,68 +1,4 @@
 #include "StreamProcessor.h"
-#include "OctTreeNode.h"
-
-/*
-    -- Struct for this algorithm is stored in header.h --
-
-    struct Run
-    {
-        int x, len;
-        char label;
-    };
-
-    struct OptimalRect {
-        int x, y, w, h;
-        char label;
-    };
-*/
-
-/*
-    z1      z2
-    -----------------------
-    oooo    oooo
-    otto    otto
-    otto    otto
-    oooo    oooo
-
-    ALGORITHM MAP
-    // ---- STEP 1 ------ //
-    Stage 1: compress along X (runs per row per slice)
-    ---------------------------
-    z1
-    ----------------------------
-    runs[0]][0][1] = runs(0,4,o)
-    runs[0]][1][0] = runs(0,1,o)
-    runs[0]][1][1] = runs(1,2,t)
-    runs[0][1][3] = runs(3,4,o)
-    runs[0]][2][0] = runs(0,1,o)
-    runs[0]][2][1] = runs(1,2,t)
-    runs[0][2][3] = runs(3,1,o)
-    runs[0]][3][0] = runs(0,4,o)
-    ---------------------------
-    z2
-    ----------------------------
-    runs[1]][0][1] = runs(0,4,o)
-    runs[1]][1][0] = runs(0,1,o)
-    runs[1]][1][1] = runs(1,2,t)
-    runs[1][1][3] = runs(3,4,o)
-    runs[1]][2][0] = runs(0,1,o)
-    runs[1]][2][1] = runs(1,2,t)
-    runs[1][2][3] = runs(3,1,o)
-    runs[1]][3][0] = runs(0,4,o)
-
-    // ---- STEP 2 ------ //
-    Stage 2: OPTIMAL rectangle finding with maximum area
-    -----------------------------------------------------
-    -> find the the label in each run (eg rect(0,4,o) -> current label = 'o' )
-    -> use the hasRunAt() function to find out max width and height of each row
-    -> use the max_dth and max_height to calucate the rectangles (ie the 2d sub-block) and their area
-    -> store all the rectangles in each slice in rect vector
-
-    // ---- STEP 3 ----//
-    Merch the rect vectors that are same n each slice
-
-
-*/
 
 // Constructor & Deconstructor
 StreamProcessor::Compressor::Compressor() {}
@@ -220,11 +156,13 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
         pb->sub_blocks[0] = sub_block;
         pb->sub_block_num = 1;
         output_stream->push((void **)&pb);
+        return;
     }
     else
     {
         pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*) * *parent_x * *parent_y * *parent_z);
-        std::vector<Cuboid> cuboids;
+        //std::vector<Cuboid> cuboids;
+        
         // Stage 1: compress along X (runs per row per slice)
         // 3D vector to tract each run in x-axis
         std::vector<std::vector<std::vector<Run>>> runs(
@@ -261,20 +199,30 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
         // Stage 2: OPTIMAL rectangle finding with maximum area
         std::vector<std::vector<Rect>> rects(*parent_z);
 
+        // 2D boolean grid with size of parent_y * parent_x and setting the value to false
+        // used for checking whether a character has been visited or not    
+        std::vector<std::vector<bool>> covered(
+                *parent_y, std::vector<bool>(*parent_x, false));
+                
+        std::vector<std::vector<bool>> processed_z(*parent_z);
+
+        int remaining_blocks;
+        int max_width;
+        char current_label;
+        int max_area;
+        int max_height;
+        int area;
+        SubBlock *sub_block;
+
         for (int z = 0; z < *parent_z; z++)
         {
-            // 2D boolean grid with size of parent_y * parent_x and setting the value to false
-            // used for checking whether a character has been visited or not
-            std::vector<std::vector<bool>> covered(
-                *parent_y, std::vector<bool>(*parent_x, false));
-
             // size of each slice of parent_block
-            int remaining_blocks = *parent_x * *parent_y;
+            remaining_blocks = *parent_x * *parent_y;
 
             while (remaining_blocks > 0)
             {
                 OptimalRect best_rect = {0, 0, 0, 0, ' '};
-                int max_area = 0;
+                max_area = 0;
 
                 // Find the largest possible rectangle starting from each uncovered position
                 for (int y = 0; y < *parent_y; y++)
@@ -285,7 +233,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
                             continue;
 
                         // Get the label at this position
-                        char current_label = ' ';
+                        current_label = ' ';
                         for (const auto &run : runs[z][y])
                         {
                             if (x >= run.x && x < run.x + run.len)
@@ -299,7 +247,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
                             continue;
 
                         // Find maximum width at this row
-                        int max_width = *parent_x - x;
+                        max_width = *parent_x - x;
                         for (int dx = 0; dx < max_width; dx++)
                         {
                             if (covered[y][x + dx] || !hasRunAt(runs[z][y], x + dx, current_label))
@@ -310,7 +258,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
                         }
 
                         // Find maximum height with consistent width
-                        int max_height = *parent_y - y;
+                        max_height = *parent_y - y;
                         for (int dy = 0; dy < max_height; dy++)
                         {
                             for (int dx = 0; dx < max_width; dx++)
@@ -327,7 +275,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
                         }
 
                         // Calculate area and update best rectangle
-                        int area = max_width * max_height;
+                        area = max_width * max_height;
                         if (area > max_area)
                         {
                             max_area = area;
@@ -356,7 +304,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
         }
 
         // Stage 3: merge rectangles across slices into cuboids
-        std::vector<std::vector<bool>> processed_z(*parent_z);
+        
         for (int z = 0; z < *parent_z; z++)
         {
             processed_z[z].resize(rects[z].size(), false);
@@ -401,7 +349,7 @@ void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
                 }
                 // pushing the resut to cuboids to outputing the results
                 //cuboids.push_back({pb->x + r.x, pb->y + r.y, pb->z + z, r.w, r.h, d, r.label});
-                SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+                sub_block = (SubBlock *)malloc(sizeof(SubBlock));
                 sub_block->x = pb->x + r.x;
                 sub_block->y = pb->y + r.y;
                 sub_block->z = pb->z + z;

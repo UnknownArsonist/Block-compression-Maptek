@@ -1,0 +1,63 @@
+
+/*
+    -- Struct for this algorithm is stored in header.h --
+
+    struct Run
+    {
+        int x, len;
+        char label;
+    };
+
+    struct OptimalRect {
+        int x, y, w, h;
+        char label;
+    };
+*/
+
+/*
+    z1      z2
+    -----------------------
+    oooo    oooo
+    otto    otto
+    otto    otto
+    oooo    oooo
+
+    ALGORITHM MAP
+    // ---- STEP 1 ------ //
+    Stage 1: compress along X (runs per row per slice)
+    ---------------------------
+    z1
+    ----------------------------
+    runs[0]][0][1] = runs(0,4,o)
+    runs[0]][1][0] = runs(0,1,o)
+    runs[0]][1][1] = runs(1,2,t)
+    runs[0][1][3] = runs(3,4,o)
+    runs[0]][2][0] = runs(0,1,o)
+    runs[0]][2][1] = runs(1,2,t)
+    runs[0][2][3] = runs(3,1,o)
+    runs[0]][3][0] = runs(0,4,o)
+    ---------------------------
+    z2
+    ----------------------------
+    runs[1]][0][1] = runs(0,4,o)
+    runs[1]][1][0] = runs(0,1,o)
+    runs[1]][1][1] = runs(1,2,t)
+    runs[1][1][3] = runs(3,4,o)
+    runs[1]][2][0] = runs(0,1,o)
+    runs[1]][2][1] = runs(1,2,t)
+    runs[1][2][3] = runs(3,1,o)
+    runs[1]][3][0] = runs(0,4,o)
+
+    // ---- STEP 2 ------ //
+    Stage 2: OPTIMAL rectangle finding with maximum area
+    -----------------------------------------------------
+    -> find the the label in each run (eg rect(0,4,o) -> current label = 'o' )
+    -> use the hasRunAt() function to find out max width and height of each row
+    -> use the max_dth and max_height to calucate the rectangles (ie the 2d sub-block) and their area
+    -> store all the rectangles in each slice in rect vector
+
+    // ---- STEP 3 ----//
+    Merch the rect vectors that are same n each slice
+
+
+*/

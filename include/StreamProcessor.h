@@ -120,7 +120,7 @@ public:
     // Helper Functions
     void passValues(StreamProcessor *sp);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
-    void printCuboidsWithLegend(std::vector<Cuboid> cb);
+    //void printCuboidsWithLegend(std::vector<Cuboid> cb);
 
 private:
     // Parent Block dimensions
