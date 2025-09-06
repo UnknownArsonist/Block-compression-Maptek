@@ -16,13 +16,13 @@ class StreamProcessor {
         void setVerbose(bool c_v);
         void setup();
         void start();
+        StreamBuffer *inputToCompressorBuffer;
+        StreamBuffer *compressorToOutputBuffer;
 
     private:
         InputStreamReader *inputStreamReader;
         Compressor *compressor;
         DisplayOutput *displayOutput;
-        StreamBuffer *inputToCompressorBuffer;
-        StreamBuffer *compressorToOutputBuffer;
         std::chrono::time_point<std::chrono::high_resolution_clock> started;
         std::thread inputStreamReaderThread;
         std::thread **compressorThreads;
@@ -61,7 +61,6 @@ class StreamProcessor::InputStreamReader : public StreamProcessor::ProcessorModu
 
         // Function declarations
         void processStream();
-        void processStream_test(const std::string& alg);
 
         void passValues(StreamProcessor *sp);
         void passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table);
@@ -86,6 +85,8 @@ class StreamProcessor::InputStreamReader : public StreamProcessor::ProcessorModu
         int *x_count;
         int *y_count;
         int *z_count;
+
+        StreamProcessor *sp;
 
         // Parent Block dimensions
         int *parent_x;

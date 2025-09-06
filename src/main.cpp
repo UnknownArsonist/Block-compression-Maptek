@@ -4,7 +4,7 @@
 */
 
 int main(int argc, char **argv) {
-    int num_compress_threads = 1;
+    int num_compress_threads = 8;
     if (argc > 1) {
         int c = atoi(argv[1]);
         if (c >= 1 && c <= 16) {

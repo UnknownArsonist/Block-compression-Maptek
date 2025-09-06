@@ -12,15 +12,16 @@ StreamProcessor::InputStreamReader::~InputStreamReader() {
     // Destructor implementation
 }
 
-void StreamProcessor::InputStreamReader::passValues(StreamProcessor *sp) {
-    x_count = &(sp->x_count);
-    y_count = &(sp->y_count);
-    z_count = &(sp->z_count);
-    parent_x = &(sp->parent_x);
-    parent_y = &(sp->parent_y);
-    parent_z = &(sp->parent_z);
-    tag_table = &(sp->tag_table);
-    output_stream = (sp->inputToCompressorBuffer);
+void StreamProcessor::InputStreamReader::passValues(StreamProcessor *c_sp) {
+    x_count = &(c_sp->x_count);
+    y_count = &(c_sp->y_count);
+    z_count = &(c_sp->z_count);
+    parent_x = &(c_sp->parent_x);
+    parent_y = &(c_sp->parent_y);
+    parent_z = &(c_sp->parent_z);
+    tag_table = &(c_sp->tag_table);
+    output_stream = (c_sp->inputToCompressorBuffer);
+    sp = c_sp;
 }
 
 void StreamProcessor::InputStreamReader::passValues(int *c_x_count, int *c_y_count, int *c_z_count, int *c_parent_x, int *c_parent_y, int *c_parent_z, std::unordered_map<char, std::string> *c_tag_table) {
@@ -94,7 +95,7 @@ void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<
     }
 }
 
-static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z) {
+static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z, StreamProcessor *sp) {
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
 
     ParentBlock *parent_blocks[num_parent_blocks];
@@ -148,11 +149,24 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
                 if (uniform[current_parent_block/8] >> (current_parent_block % 8) & 1/* && false */) {
                     free(parent_blocks[current_parent_block]->block);
                     parent_blocks[current_parent_block]->block = NULL;
+                    parent_blocks[current_parent_block]->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*));
+                    SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+                    sub_block->x = parent_blocks[current_parent_block]->x;
+                    sub_block->y = parent_blocks[current_parent_block]->y;
+                    sub_block->z = parent_blocks[current_parent_block]->z;
+                    sub_block->l = *parent_x;
+                    sub_block->w = *parent_y;
+                    sub_block->h = *parent_z;
+                    sub_block->tag = parent_blocks[current_parent_block]->first;
+                    parent_blocks[current_parent_block]->sub_blocks[0] = sub_block;
+                    parent_blocks[current_parent_block]->sub_block_num = 1;
+                    sp->compressorToOutputBuffer->push((void **)&parent_blocks[current_parent_block]);
+                } else {
+                    output_stream->push((void **)&parent_blocks[current_parent_block]);
+                    //free(parent_blocks[current_parent_block]);
                 }
-                blocks++;
-                output_stream->push((void **)&parent_blocks[current_parent_block]);
-                //free(parent_blocks[current_parent_block]);
                 parent_blocks[current_parent_block] = NULL;
+                blocks++;
                 // output_stream->printBuffer();
             }
             x++;
@@ -165,11 +179,7 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
 
 // Function to process the slice of 3D block data
 void StreamProcessor::InputStreamReader::processStream() {
-    processStream_char(input_stream, output_stream, x_count, y_count, z_count, parent_x, parent_y, parent_z);
-}
-
-void StreamProcessor::InputStreamReader::processStream_test(const std::string& alg) {
-    processStream_char(input_stream, output_stream, x_count, y_count, z_count, parent_x, parent_y, parent_z);
+    processStream_char(input_stream, output_stream, x_count, y_count, z_count, parent_x, parent_y, parent_z, sp);
 }
 
 // print the header information and the 3D block data

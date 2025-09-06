@@ -90,13 +90,14 @@ void StreamProcessor::DisplayOutput::printSubBlocks(HANDLE hStdout, ParentBlock 
 void StreamProcessor::DisplayOutput::displayBlocks() {
     // TODO check for when input_stream or tag_table not set
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    bool valid_handle = true;
+    /* bool valid_handle = true;
     if (hStdout == INVALID_HANDLE_VALUE) {
         valid_handle = false;
-    }
+    } */
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
     int current_chunk = 0;
-    ParentBlock **next_blocks = (ParentBlock**)malloc(sizeof(ParentBlock*) * num_parent_blocks * 2);
+    std::vector<ParentBlock*> next_blocks;
+    next_blocks.resize(num_parent_blocks, NULL);
     int current_count = 0;
     int next_count = 0;
 
@@ -138,8 +139,9 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
                 next_count = next_count - p_count;
             }
         } else {
-            if (next_count >= num_parent_blocks) {
-                fprintf(stderr, "next_block = %d / %d\n", next_count, num_parent_blocks);
+            if (next_count >= (int)next_blocks.capacity()) {
+                next_blocks.resize(next_blocks.capacity() + num_parent_blocks, NULL);
+                //fprintf(stderr, "next_block = %d / %d\n", next_count, num_parent_blocks);
             }
             next_blocks[next_count] = parent_block;
             next_count++;
@@ -150,7 +152,6 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
         WriteFile(hStdout, buffer, stored, NULL, NULL);
         stored = 0;
     }
-    free(next_blocks);
     free(buffer);
     CloseHandle(hStdout);
 }
