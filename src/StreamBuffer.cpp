@@ -10,6 +10,7 @@ StreamProcessor::StreamBuffer::StreamBuffer(int c_num_writers) {
 StreamProcessor::StreamBuffer::StreamBuffer() : StreamBuffer(1) {}
 
 StreamProcessor::StreamBuffer::~StreamBuffer() {
+    free(write_ptr);
 }
 
 void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
@@ -65,7 +66,8 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
         lock.lock();
     } */
 
-    item *new_item = (item*)malloc(sizeof(item));
+    item *new_item;
+    new_item = (item*)malloc(sizeof(item));
     new_item->value = nullptr;
     new_item->next_item = nullptr;
     write_ptr->value = val;
