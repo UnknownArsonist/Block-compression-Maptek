@@ -1,5 +1,6 @@
 {
   "files.associations": {
+    "*.html": "html",
     "iostream": "cpp",
     "array": "cpp",
     "atomic": "cpp",
@@ -52,6 +53,12 @@
     "stop_token": "cpp",
     "streambuf": "cpp",
     "thread": "cpp",
-    "typeinfo": "cpp"
+    "typeinfo": "cpp",
+    "charconv": "cpp",
+    "optional": "cpp",
+    "format": "cpp",
+    "iomanip": "cpp",
+    "span": "cpp",
+    "variant": "cpp"
   }
 }

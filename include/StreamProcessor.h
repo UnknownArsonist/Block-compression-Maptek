@@ -112,13 +112,7 @@ public:
 
     // StartUp function
     void compressStream();
-
-    // Algorithm 1
-    void OctreeCompression(ParentBlock *parent_block);
-
-    // Algorithm 2
-    void processParentBlocks(ParentBlock *parent_block);
-
+    void hybrid(ParentBlock *pb);
     // Helper Functions
     void passValues(StreamProcessor *sp);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);

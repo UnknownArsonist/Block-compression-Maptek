@@ -1,0 +1,27 @@
+64,64,2,8,8,1
+o, sea
+w, WA
+n, NT
+s, SA
+q, QLD
+e, NSW
+v, VIC
+t, TAS
+
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo ottooooo oooooooo
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo otttoooo oooooooo
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo ottttooo oooooooo
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo tttttooo oooooooo
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo ttootooo oooooooo
+oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo oooooooo
