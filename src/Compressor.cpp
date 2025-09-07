@@ -142,233 +142,230 @@ void StreamProcessor::Compressor::printCuboidsWithLegend(
 // Compression Algorithm
 void StreamProcessor::Compressor::compressParentBlock(ParentBlock *pb)
 {
+    if (pb == nullptr) return;
+
+    // If there is no data (block == NULL), treat as uniform block with tag pb->first
     if (pb->block == NULL)
     {
         pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock *));
+        if (!pb->sub_blocks) {
+            // handle allocation failure gracefully
+            fprintf(stderr, "malloc failed for sub_blocks\n");
+            return;
+        }
         SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+        if (!sub_block) {
+            fprintf(stderr, "malloc failed for sub_block\n");
+            free(pb->sub_blocks);
+            return;
+        }
         sub_block->x = pb->x;
         sub_block->y = pb->y;
         sub_block->z = pb->z;
-        sub_block->l = *parent_x;
-        sub_block->w = *parent_y;
-        sub_block->h = *parent_z;
+        sub_block->l = static_cast<int>(*parent_x);
+        sub_block->w = static_cast<int>(*parent_y);
+        sub_block->h = static_cast<int>(*parent_z);
         sub_block->tag = pb->first;
         pb->sub_blocks[0] = sub_block;
         pb->sub_block_num = 1;
         output_stream->push((void **)&pb);
         return;
     }
-    else
+
+    // Reserve worst-case space for sub-block pointers (one cell per original voxel)
+    size_t max_subblocks = static_cast<size_t>(*parent_x) * static_cast<size_t>(*parent_y) * static_cast<size_t>(*parent_z);
+    pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock *) * max_subblocks);
+    if (!pb->sub_blocks) {
+        fprintf(stderr, "malloc failed for sub_blocks\n");
+        return;
+    }
+    pb->sub_block_num = 0;
+
+    // Stage 1: compute runs along X for each (z,y)
+    std::vector<std::vector<std::vector<Run>>> runs(
+        *parent_z, std::vector<std::vector<Run>>(*parent_y));
+
+    for (int z = 0; z < *parent_z; z++)
     {
-        pb->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*) * *parent_x * *parent_y * *parent_z);
-        //std::vector<Cuboid> cuboids;
-        
-        // Stage 1: compress along X (runs per row per slice)
-        // 3D vector to tract each run in x-axis
-        std::vector<std::vector<std::vector<Run>>> runs(
-            *parent_z, std::vector<std::vector<Run>>(*parent_y));
-
-        // get index of the character of the the parent block
-        auto idx = [&](int x, int y, int z)
+        for (int y = 0; y < *parent_y; y++)
         {
-            return (x * *parent_y * *parent_z) + (y * *parent_z) + z;
-        };
+            int x = 0;
+            while (x < *parent_x)
+            {
+                // index for (x,y,z) : ((x * parent_y) + y) * parent_z + z
+                // to match your linearization: (x * parent_y * parent_z) + (y * parent_z) + z
+                char label = pb->block[( (x * (*parent_y) * (*parent_z)) ) + (y * (*parent_z)) + z];
+                int len = 1;
+                // ===== FIXED =====: parentheses so (x + len) is multiplied, not x + (len * ...)
+                while (x + len < *parent_x &&
+                       pb->block[( ((x + len) * (*parent_y) * (*parent_z)) ) + (y * (*parent_z)) + z] == label)
+                {
+                    len++;
+                }
+                runs[z][y].push_back({x, len, label});
+                x += len;
+            }
+        }
+    }
 
-        for (int z = 0; z < *parent_z; z++)
+    // Stage 2: find optimal rectangles (per-slice)
+    std::vector<std::vector<Rect>> rects(*parent_z);
+
+    // allocate per-slice "covered" grid and compute rectangles per slice independently
+    for (int z = 0; z < *parent_z; z++)
+    {
+        // per-slice covered grid (reset for each z)
+        std::vector<std::vector<bool>> covered(*parent_y, std::vector<bool>(*parent_x, false));
+        int remaining_blocks = (*parent_x) * (*parent_y);
+
+        while (remaining_blocks > 0)
         {
+            OptimalRect best_rect = {0, 0, 0, 0, '\0'};
+            int max_area = 0;
+
             for (int y = 0; y < *parent_y; y++)
             {
-                int x = 0;
-                while (x < *parent_x)
+                for (int x = 0; x < *parent_x; x++)
                 {
-                    char label = pb->block[idx(x, y, z)]; // parent_block[0][0][0] (i.e the first character)
-                    int len = 1;
-                    // compares the nth character and (n + 1)th character
-                    while (x + len < *parent_x && pb->block[idx(x + len, y, z)] == label)
+                    if (covered[y][x]) continue;
+
+                    // find label at (x,y) by scanning runs
+                    char current_label = '\0';
+                    for (const auto &run : runs[z][y])
                     {
-                        len++; // increase len if they are equal
-                    }
-                    // keeping a record of maximum length of indentical characters in x-axis
-                    runs[z][y].push_back({x, len, label});
-                    // changing the x value to ensure each run is properly recorded
-                    x += len;
-                }
-            }
-        }
-
-        // Stage 2: OPTIMAL rectangle finding with maximum area
-        std::vector<std::vector<Rect>> rects(*parent_z);
-
-        // 2D boolean grid with size of parent_y * parent_x and setting the value to false
-        // used for checking whether a character has been visited or not    
-        std::vector<std::vector<bool>> covered(
-                *parent_y, std::vector<bool>(*parent_x, false));
-                
-        std::vector<std::vector<bool>> processed_z(*parent_z);
-
-        int remaining_blocks;
-        int max_width;
-        char current_label;
-        int max_area;
-        int max_height;
-        int area;
-        SubBlock *sub_block;
-
-        for (int z = 0; z < *parent_z; z++)
-        {
-            // size of each slice of parent_block
-            remaining_blocks = *parent_x * *parent_y;
-
-            while (remaining_blocks > 0)
-            {
-                OptimalRect best_rect = {0, 0, 0, 0, ' '};
-                max_area = 0;
-
-                // Find the largest possible rectangle starting from each uncovered position
-                for (int y = 0; y < *parent_y; y++)
-                {
-                    for (int x = 0; x < *parent_x; x++)
-                    {
-                        if (covered[y][x])
-                            continue;
-
-                        // Get the label at this position
-                        current_label = ' ';
-                        for (const auto &run : runs[z][y])
+                        if (x >= run.x && x < run.x + run.len)
                         {
-                            if (x >= run.x && x < run.x + run.len)
-                            {
-                                current_label = run.label; // according our map current_label is 'o'
-                                // once the x has reached max len in that row or the character in that row changes then break
-                                break;
-                            }
-                        }
-                        if (current_label == ' ')
-                            continue;
-
-                        // Find maximum width at this row
-                        max_width = *parent_x - x;
-                        for (int dx = 0; dx < max_width; dx++)
-                        {
-                            if (covered[y][x + dx] || !hasRunAt(runs[z][y], x + dx, current_label))
-                            {
-                                max_width = dx;
-                                break;
-                            }
-                        }
-
-                        // Find maximum height with consistent width
-                        max_height = *parent_y - y;
-                        for (int dy = 0; dy < max_height; dy++)
-                        {
-                            for (int dx = 0; dx < max_width; dx++)
-                            {
-                                if (covered[y + dy][x + dx] ||
-                                    !hasRunAt(runs[z][y + dy], x + dx, current_label))
-                                {
-                                    max_height = dy;
-                                    break;
-                                }
-                            }
-                            if (max_height == dy)
-                                break;
-                        }
-
-                        // Calculate area and update best rectangle
-                        area = max_width * max_height;
-                        if (area > max_area)
-                        {
-                            max_area = area;
-                            best_rect = {x, y, max_width, max_height, current_label};
-                        }
-                    }
-                }
-
-                if (max_area == 0)
-                    break; // No more rectangles found
-
-                // Add the best rectangle and mark as covered (keep tract of the maximum area of the 2D block containtaing identical character)
-                // rects[z][j] - for each slice it contains all the rectangles
-                rects[z].push_back({best_rect.x, best_rect.y, best_rect.w, best_rect.h, best_rect.label});
-
-                for (int dy = 0; dy < best_rect.h; dy++)
-                {
-                    for (int dx = 0; dx < best_rect.w; dx++)
-                    {
-                        covered[best_rect.y + dy][best_rect.x + dx] = true;
-                    }
-                }
-                // total area of parent_block - max_area(maximum area of the 2D block containtaing identical character)
-                remaining_blocks -= max_area;
-            }
-        }
-
-        // Stage 3: merge rectangles across slices into cuboids
-        
-        for (int z = 0; z < *parent_z; z++)
-        {
-            processed_z[z].resize(rects[z].size(), false);
-        }
-
-        for (int z = 0; z < *parent_z; z++)
-        {
-            for (size_t i = 0; i < rects[z].size(); i++)
-            {
-                if (processed_z[z][i])
-                    continue;
-
-                // pointing to the rectangles in each slices (ie rect[0][j] and rect[1][j] = slice 0 - slice 1, 1st rectangle..)
-                auto &r = rects[z][i];
-                int d = 1;
-
-                // Check subsequent slices for identical rectangles
-                while (z + d < *parent_z)
-                {
-                    bool found = false;
-                    for (size_t j = 0; j < rects[z + d].size(); j++)
-                    {
-                        if (processed_z[z + d][j])
-                            continue;
-
-                        // inner loops checks if the the rectanges in the current and next slices are same or not
-                        auto &candidate = rects[z + d][j];
-                        if (candidate.x == r.x && candidate.y == r.y &&
-                            candidate.w == r.w && candidate.h == r.h &&
-                            candidate.label == r.label)
-                        {
-                            // if they are same then processed_z vector is updated
-                            found = true;
-                            // updating the next slice
-                            processed_z[z + d][j] = true;
+                            current_label = run.label;
                             break;
                         }
                     }
-                    if (!found)
-                        break;
-                    d++;
+                    if (current_label == '\0') continue;
+
+                    // find max width at this row
+                    int max_width = *parent_x - x;
+                    for (int dx = 0; dx < max_width; dx++)
+                    {
+                        if (covered[y][x + dx] || !hasRunAt(runs[z][y], x + dx, current_label))
+                        {
+                            max_width = dx;
+                            break;
+                        }
+                    }
+                    if (max_width == 0) continue;
+
+                    // find max height with consistent width
+                    int max_height = *parent_y - y;
+                    for (int dy = 0; dy < max_height; dy++)
+                    {
+                        bool ok = true;
+                        for (int dx = 0; dx < max_width; dx++)
+                        {
+                            if (covered[y + dy][x + dx] || !hasRunAt(runs[z][y + dy], x + dx, current_label))
+                            {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        if (!ok)
+                        {
+                            max_height = dy;
+                            break;
+                        }
+                    }
+                    if (max_height == 0) continue;
+
+                    int area = max_width * max_height;
+                    if (area > max_area)
+                    {
+                        max_area = area;
+                        best_rect = {x, y, max_width, max_height, current_label};
+                    }
                 }
-                // pushing the resut to cuboids to outputing the results
-                //cuboids.push_back({pb->x + r.x, pb->y + r.y, pb->z + z, r.w, r.h, d, r.label});
-                sub_block = (SubBlock *)malloc(sizeof(SubBlock));
-                sub_block->x = pb->x + r.x;
-                sub_block->y = pb->y + r.y;
-                sub_block->z = pb->z + z;
-                sub_block->l = r.w;
-                sub_block->w = r.h;
-                sub_block->h = d;
-                sub_block->tag =  r.label;
-                pb->sub_blocks[pb->sub_block_num] = sub_block;
-                pb->sub_block_num++;
-                // updating the current slice
-                processed_z[z][i] = true;
+            } // end scanning x,y
+
+            if (max_area == 0) break; // nothing found
+
+            // record best rectangle for this z
+            rects[z].push_back({best_rect.x, best_rect.y, best_rect.w, best_rect.h, best_rect.label});
+
+            // mark covered
+            for (int dy = 0; dy < best_rect.h; dy++)
+                for (int dx = 0; dx < best_rect.w; dx++)
+                    covered[best_rect.y + dy][best_rect.x + dx] = true;
+
+            remaining_blocks -= max_area;
+        } // end while remaining_blocks
+    } // end for each z
+
+    // Stage 3: merge rectangles across z into cuboids (sub-blocks)
+    std::vector<std::vector<bool>> processed_z(*parent_z);
+    for (int z = 0; z < *parent_z; z++)
+        processed_z[z].resize(rects[z].size(), false);
+
+    for (int z = 0; z < *parent_z; z++)
+    {
+        for (size_t i = 0; i < rects[z].size(); i++)
+        {
+            if (processed_z[z][i]) continue;
+            auto &r = rects[z][i];
+            int d = 1;
+
+            // check subsequent slices
+            while (z + d < *parent_z)
+            {
+                bool found = false;
+                for (size_t j = 0; j < rects[z + d].size(); j++)
+                {
+                    if (processed_z[z + d][j]) continue;
+                    auto &cand = rects[z + d][j];
+                    if (cand.x == r.x && cand.y == r.y && cand.w == r.w && cand.h == r.h && cand.label == r.label)
+                    {
+                        found = true;
+                        processed_z[z + d][j] = true;
+                        break;
+                    }
+                }
+                if (!found) break;
+                d++;
             }
+
+            // create subblock for merged cuboid (x,y,z .. width=w, height=h, depth=d)
+            SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+            if (!sub_block) {
+                fprintf(stderr, "malloc failed for sub_block\n");
+                // continue but don't crash; might leak previously allocated memory
+                continue;
+            }
+            sub_block->x = pb->x + r.x;
+            sub_block->y = pb->y + r.y;
+            sub_block->z = pb->z + z;
+            sub_block->l = r.w; // length in x
+            sub_block->w = r.h; // width in y
+            sub_block->h = d;   // depth in z
+            sub_block->tag = r.label;
+
+            // safe guard: ensure we don't overflow pb->sub_blocks array
+            if (pb->sub_block_num < static_cast<int>(max_subblocks)) {
+                pb->sub_blocks[pb->sub_block_num++] = sub_block;
+            } else {
+                // out of space - should not happen if max_subblocks was computed correctly
+                fprintf(stderr, "sub_blocks buffer overflow\n");
+                free(sub_block);
+            }
+
+            processed_z[z][i] = true;
         }
-        free(pb->block);
-        output_stream->push((void **)&pb);
+    }
+
+    // free original block memory if owned here
+    free(pb->block);
+    pb->block = NULL;
+
+    output_stream->push((void **)&pb);
     }
     // Fast validation (comment out for production)
     // validateCoverageEfficient(cuboids, pb, parent_x, parent_y, parent_z);
-}
+
 
 //  Startup
 void StreamProcessor::Compressor::compressStream()
