@@ -95,6 +95,37 @@ void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<
     }
 }
 
+static int left = 0;
+static int up = 1;
+static int below = 2;
+static int right = 3;
+static int down = 4;
+static int above = 5;
+static int faces[6][3] = {
+    {-1,0,0},
+    {0,-1,0},
+    {0,0,-1},
+    {1,0,0},
+    {0,1,0},
+    {0,0,1}
+};
+
+struct Face {
+    int x;
+    int y;
+    int z;
+    int d;
+}
+
+static int makeFace(int x, int y, int z, char a, char b, int f) {
+    Face *face = (Face*)malloc(sizeof(Face));
+    face->x = faces[f][0];
+    face->y = faces[f][1];
+    face->z = faces[f][2];
+    face->d = f;
+    free(face);
+}
+
 static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z, StreamProcessor *sp) {
     int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
 
@@ -110,6 +141,8 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
     int y = 0;
     int z = 0;
     int blocks = 0;
+
+    auto idx = [&](int x, int y, int z){ return (x * *parent_y * *parent_z) + (y * *parent_z) + z; };
 
     while ((ch = getc(input_stream)) != EOF) {
         if (ch == '\n') {
@@ -132,16 +165,42 @@ static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer
                 parent_blocks[current_parent_block]->sub_blocks = nullptr;
                 parent_blocks[current_parent_block]->sub_block_num = 0;
             }
-
             int parent_relative_x = x % *parent_x;
             int parent_relative_y = y % *parent_y;
             int parent_relative_z = z % *parent_z;
             // printf("[%d] (%d, %d, %d), (%d, %d, %d): %c\n", current_parent_block, x, y, z, parent_relative_x, parent_relative_y, parent_relative_z, ch);
 
-            parent_blocks[current_parent_block]->block[(parent_relative_x * *parent_y * *parent_z) + (parent_relative_y * *parent_z) + parent_relative_z] = ch;
+            parent_blocks[current_parent_block]->block[idx(parent_relative_x, parent_relative_y, parent_relative_z)] = ch;
             if (ch != parent_blocks[current_parent_block]->first) {
                 uniform[current_parent_block/8] &= 0 << (current_parent_block % 8);
             }
+
+            char *block = parent_blocks[current_parent_block]->block;
+            if (parent_relative_x < 1 || block[idx(parent_relative_x-1,parent_relative_y,parent_relative_z)] != ch) {
+                //Make Face
+                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x-1,parent_relative_y,parent_relative_z)], 0);
+            }
+            if (parent_relative_y < 1 || block[idx(parent_relative_x,parent_relative_y-1,parent_relative_z)] != ch) {
+                //Make Face
+                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y-1,parent_relative_z)], 1);
+            }
+            if (parent_relative_z < 1 || block[idx(parent_relative_x,parent_relative_y,parent_relative_z-1)] != ch) {
+                //Make Face
+                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y,parent_relative_z-1)], 2);
+            }
+            /* if (parent_relative_x >= *parent_x-1) {
+                //Make Face
+                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x+1,parent_relative_y,parent_relative_z)], 3);
+            }
+            if (parent_relative_y >= *parent_y-1) {
+                //Make Face
+                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y+1,parent_relative_z)], 4);
+            }
+            if (parent_relative_z >= *parent_z-1) {
+                //Make Face
+                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y,parent_relative_z+1)], 5);
+            } */
+
             //fprintf(stderr, "(%d, %d, %d) %c\n", x, y, z, ch);
             if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
                 //fprintf(stderr, " %d / %d (%d, %d, %d)\n", current_parent_block, num_parent_blocks, x, y, z);
