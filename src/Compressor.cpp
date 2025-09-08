@@ -21,20 +21,13 @@ void StreamProcessor::Compressor::passBuffers(StreamBuffer *c_input_stream, Stre
     input_stream = c_input_stream;
     output_stream = c_output_stream;
 }
+
 // -----------ENDS HERE-------- ------------- //
 
 // -----------MAIN FUNCTIONS-------- -------- //
 // Algorithm 1
-struct encode {
-    char character;
-    int length;
 
-    //used for comparing two encode
-    bool operator==(const encode &other) const {
-        return character == other.character && length == other.length;
-    }
-};
-
+// Compression Algorithm
 void StreamProcessor::Compressor::hybrid(ParentBlock *pb) {
     std::vector<std::vector<encode>> RLE;  
     RLE.resize(*parent_z);   // One vector per slice (z)
@@ -104,16 +97,76 @@ void StreamProcessor::Compressor::hybrid(ParentBlock *pb) {
                 }
             }
         }
+        RLE_compression(RLE);
+    }
+}
 
-        // Debug print
-        for (int z = 0; z < *parent_z; z++) {
-            std::cout << "Slice z=" << z << "\n";
-            for (auto &e : RLE[z]) {
-                std::cout << e.character << "," << e.length << " ";
+void StreamProcessor::Compressor::irregularblock_compression(std::vector<std::vector<encode>> block, int row_count)
+{
+        std::vector<std::vector<char>> grid(row_count, std::vector<char>(*parent_x));
+
+    // Decode RLE into grid
+    for (int y = 0; y < row_count; y++) {
+        int x = 0;
+        for (const auto& rleItem : block[y]) {
+            for (int i = 0; i < rleItem.length; i++) {
+                if (x < *parent_x) {
+                    grid[y][x] = rleItem.character;
+                    x++;
+                }
             }
-            std::cout << "\n";
         }
     }
+
+    // Display the grid
+    //std::cout << "Decoded Grid (" << row_count << " rows x " << *parent_x << " cols):\n";
+    for (int y = 0; y < row_count-1; y++) {
+        //std::cout << "Row " << y << ": ";
+        for (int x = 0; x < *parent_x; x++) {
+            std::cout << grid[y][x] << " ";
+        }
+        std::cout << "\n";
+    }
+
+    //compressParentBlock(ParentBlock *pb);
+}
+
+void StreamProcessor::Compressor::RLE_compression(std::vector<std::vector<encode>> RLE)
+{   
+    std::vector<std::vector<encode>> compressed;
+    int row_count = 0;
+    int length = 0;
+    // prepare first row
+    compressed.resize(1);
+    for (int z = 0; z < *parent_z; z++){ 
+        row_count = 0;
+        length = 0;
+        compressed.clear();
+        compressed.resize(1);  // start with first row
+        for (int i = 0; i < RLE[z].size();i++) {
+            if(RLE[z][i].length == (*parent_x * *parent_y))
+            {
+                std::cout << RLE[z][i].character << "," << RLE[z][i].length << " " << "\n";
+            }
+            else
+            {
+                int row_len = RLE[z][i].length;
+                compressed[row_count].push_back(RLE[z][i]);
+                length += row_len;
+
+                if (length == *parent_x) {
+                    // finish this row
+                    row_count++;
+                    length = 0;
+                    compressed.resize(row_count + 1);
+                }
+            }//else
+        }//i
+        if (!compressed.empty() && !compressed[0].empty()) {
+            irregularblock_compression(compressed, row_count + 1);
+        }
+    }// z
+    
 }
 
 
@@ -122,12 +175,10 @@ void StreamProcessor::Compressor::compressStream()
 {
     ParentBlock *parent_block;
     int block_count = 0;
-
     do
     {
         // fprintf(stderr, "Compressor: get val\n");
         input_stream->pop((void **)&parent_block);
-
         if (parent_block == nullptr)
             if (parent_block == nullptr)
             {
@@ -135,13 +186,7 @@ void StreamProcessor::Compressor::compressStream()
                 output_stream->push(NULL);
                 break;
             }
-
         block_count++;
-    
-        
-        
-        
-
         StreamProcessor::Compressor::hybrid(parent_block);
         // Safety check: if we've processed too many blocks, use simpler algorithm
 

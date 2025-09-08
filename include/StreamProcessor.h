@@ -110,9 +110,14 @@ public:
     Compressor();
     ~Compressor();
 
+    
+
     // StartUp function
     void compressStream();
     void hybrid(ParentBlock *pb);
+    void RLE_compression(std::vector<std::vector<encode>> RLE);
+    void irregularblock_compression(std::vector<std::vector<encode>> block, int row_count);
+
     // Helper Functions
     void passValues(StreamProcessor *sp);
     void passBuffers(StreamBuffer *c_input_stream, StreamBuffer *c_output_stream);
@@ -126,6 +131,7 @@ private:
     StreamBuffer *input_stream;
     StreamBuffer *output_stream;
     std::unordered_map<char, std::string> *tag_table;
+     std::vector<std::vector<encode>> RLE;  
 };
 
 // -------- DISPLAY_OUTPUT MODULE --------- //

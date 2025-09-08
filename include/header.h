@@ -8,6 +8,7 @@
 #include <thread>
 #include <cstring>
 #include <mutex>
+#include <algorithm>
 #include <condition_variable>
 #include <chrono>
 #ifdef WIN32
@@ -32,4 +33,32 @@ struct ParentBlock {
     char first;
     SubBlock **sub_blocks;
     int sub_block_num;
+};
+
+struct encode {
+    char character;
+    int length;
+
+    //used for comparing two encode
+    bool operator==(const encode &other) const {
+        return character == other.character && length == other.length;
+    }
+};
+
+struct Rect
+{
+    int x, y, w, h;
+    char label;
+};
+
+struct Run
+{
+    int x, len;
+    char label;
+};
+
+struct OptimalRect
+{
+    int x, y, w, h;
+    char label;
 };
