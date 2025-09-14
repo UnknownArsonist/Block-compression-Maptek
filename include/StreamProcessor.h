@@ -16,13 +16,11 @@ class StreamProcessor {
         void setVerbose(bool c_v);
         void setup();
         void start();
-        StreamBuffer *inputToCompressorBuffer;
-        StreamBuffer *compressorToOutputBuffer;
-
-    private:
         InputStreamReader *inputStreamReader;
         Compressor *compressor;
         DisplayOutput *displayOutput;
+        StreamBuffer *inputToCompressorBuffer;
+        StreamBuffer *compressorToOutputBuffer;
         std::chrono::time_point<std::chrono::high_resolution_clock> started;
         std::thread inputStreamReaderThread;
         std::thread **compressorThreads;

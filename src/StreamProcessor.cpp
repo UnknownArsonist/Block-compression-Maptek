@@ -61,7 +61,7 @@ void StreamProcessor::start() {
 
     if (verbose) {
         auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "InputStreamReader Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
+        fprintf(stderr, "InputStreamReader Runtime:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
     }
     for (int i = 0; i < num_compressor_threads; i++) {
         compressorThreads[i]->join();
@@ -69,12 +69,12 @@ void StreamProcessor::start() {
     }
     if (verbose) {
         auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "Compressor Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
+        fprintf(stderr, "Compressor Runtime:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
     }
     displayOutputThread.join();
     if (verbose) {
         auto end = std::chrono::high_resolution_clock::now();
-        std::cerr << "Output Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
+        fprintf(stderr, "Output Runtime:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
     }
 }
 

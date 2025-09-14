@@ -24,13 +24,20 @@ void StreamProcessor::StreamBuffer::setSize(int c_buf_size) {
 int StreamProcessor::StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(read_mutex);
 
-    if (read_size_stored == 0) {
-        std::unique_lock<std::mutex> write_lock(write_value_mutex);
-        read_cond.wait(write_lock, [this]{
+    while (read_size_stored == 0) {
+        //std::unique_lock<std::mutex> write_lock(write_value_mutex);
+        /* read_cond.wait(write_lock, [this]{
             read_size_stored = num_write;
             num_write = 0;
             return (read_size_stored > 0);
-        });
+        }); */
+        write_mutex.lock();
+        read_size_stored = num_write;
+        num_write = 0;
+        write_mutex.unlock();
+        lock.unlock();
+        std::this_thread::yield();
+        lock.lock();
     }
 
     if (read_ptr->value == nullptr) {
@@ -78,7 +85,7 @@ int StreamProcessor::StreamBuffer::push(void **buf) {
     write_value_mutex.lock();
     num_write++;
     write_value_mutex.unlock();
-    read_cond.notify_all();
+    //read_cond.notify_all();
     return 1;
 }
 
