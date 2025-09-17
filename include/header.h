@@ -9,6 +9,11 @@
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <algorithm> // For std::min
+#include <tuple>     // For std::tie
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -29,6 +34,13 @@ struct ParentBlock {
     int z;
     char *block;
     char first;
-    SubBlock **sub_blocks;
+    SubBlock** sub_blocks;
+    int sub_block_num;
+};
+
+struct Chunk {
+    int id;
+    char *block;
+    SubBlock** sub_blocks;
     int sub_block_num;
 };

@@ -61,7 +61,7 @@ void StreamProcessor::DisplayOutput::printSubBlock(HANDLE hStdout, SubBlock *sb)
     WriteFile(hStdout, buf, len, NULL, NULL);
 }
 
-void StreamProcessor::DisplayOutput::printSubBlocks(HANDLE hStdout, ParentBlock *pb) {
+void StreamProcessor::DisplayOutput::printSubBlocks(HANDLE hStdout, Chunk *pb) {
     int sbb_size_char = 35;
     int num_blocks_per_buf = buf_size / sbb_size_char;
     int remaining = pb->sub_block_num;
@@ -94,60 +94,62 @@ void StreamProcessor::DisplayOutput::displayBlocks() {
     if (hStdout == INVALID_HANDLE_VALUE) {
         valid_handle = false;
     } */
-    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
+    int num_chunk = 10;
     int current_chunk = 0;
-    std::vector<ParentBlock*> next_blocks;
-    next_blocks.resize(num_parent_blocks, NULL);
-    int current_count = 0;
+    std::vector<Chunk*> next_blocks;
+    next_blocks.resize(num_chunk, NULL);
     int next_count = 0;
 
     buf_size = 2048;
     stored = 0;
     buffer = (char*)malloc(sizeof(char) * buf_size);
 
-    ParentBlock *parent_block = nullptr;
+    Chunk *chunk = nullptr;
     do {
-        input_stream->pop((void **)&parent_block);
+        input_stream->pop((void **)&chunk);
 
-        //fprintf(stderr, "Display: %d,%d,%d,%c  %d\n", parent_block->x, parent_block->y, parent_block->z, parent_block->first, parent_block->sub_block_num);
-        if (parent_block == nullptr) {
+        if (chunk == nullptr) {
             //fprintf(stderr, "NULL END\n");
             break;
         }
-        int pb_chunk = parent_block->z / *parent_z;
-        if (pb_chunk == current_chunk) {
-            printSubBlocks(hStdout, parent_block);
-            free(parent_block->sub_blocks);
-            delete parent_block;
-            current_count++;
-            if (current_count >= num_parent_blocks) {
-                //fprintf(stderr, "cc: %d\n", current_chunk);
-                current_chunk++;
+        //fprintf(stderr, "Display: %d,%d,%d  %d\n", parent_block->x, parent_block->y, parent_block->z, parent_block->sub_block_num);
+        
+        if (chunk->id == current_chunk) {
+            printSubBlocks(hStdout, chunk);
+            free(chunk->sub_blocks);
+            free(chunk);
+            //fprintf(stderr, "cc: %d\n", current_chunk);
+            current_chunk++;
+            while (next_count > 0) {
                 int p_count = 0;
                 for (int i = 0; i < next_count; i++) {
-                    int t_chunk = next_blocks[i]->z / *parent_z;
+                    int t_chunk = next_blocks[i]->id;
                     if (t_chunk == current_chunk) {
                         printSubBlocks(hStdout, next_blocks[i]);
                         free(next_blocks[i]->sub_blocks);
-                        delete next_blocks[i];
+                        free(next_blocks[i]);
                         p_count++;
-                    } else if (p_count > 0) {
+                    } else {
                         next_blocks[i-p_count] = next_blocks[i];
                     }
                 }
-                current_count = p_count;
                 next_count = next_count - p_count;
+                if (p_count > 0) {
+                    current_chunk++;
+                } else {
+                    break;
+                }
             }
         } else {
             if (next_count >= (int)next_blocks.capacity()) {
-                next_blocks.resize(next_blocks.capacity() + num_parent_blocks, NULL);
-                //fprintf(stderr, "next_block = %d / %d\n", next_count, num_parent_blocks);
+                next_blocks.resize(next_blocks.capacity() + num_chunk, NULL);
+                fprintf(stderr, "next_block = %d / %d\n", next_count, num_chunk);
             }
-            next_blocks[next_count] = parent_block;
+            next_blocks[next_count] = chunk;
             next_count++;
         }
         //fprintf(stderr, "%d,%d,%d,%d,%d,%d,%s\n", sub_block->x, sub_block->y, sub_block->z, sub_block->l, sub_block->w, sub_block->h, (*tag_table)[sub_block->tag].c_str());
-    } while (parent_block != NULL);
+    } while (chunk != NULL);
     if (stored > 0) {
         WriteFile(hStdout, buffer, stored, NULL, NULL);
         stored = 0;

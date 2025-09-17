@@ -38,25 +38,30 @@ void StreamProcessor::setup() {
 }
 
 void StreamProcessor::start() {
+    started = std::chrono::high_resolution_clock::now();
     setup();
 
     if (verbose) {
-        fprintf(stderr, "[SP] Setup Complete\n");
-        started = std::chrono::high_resolution_clock::now();
+        auto end = std::chrono::high_resolution_clock::now();
+        fprintf(stderr, "[SP] Setup Complete:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
     }
     // inputStreamReader.printHeader();
     if (verbose) {
-        fprintf(stderr, "Starting %d Compressor Threads\n", num_compressor_threads);
-        started = std::chrono::high_resolution_clock::now();
+        auto end = std::chrono::high_resolution_clock::now();
+        fprintf(stderr, "Starting %d Compressor Threads:\n  %lld\n", num_compressor_threads, std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
     }
     for (int i = 0; i < num_compressor_threads; i++) {
         compressorThreads[i] = new std::thread(&Compressor::compressStream, compressor);
     }
     if (verbose) {
-        fprintf(stderr, "Starting Display Thread\n");
-        started = std::chrono::high_resolution_clock::now();
+        auto end = std::chrono::high_resolution_clock::now();
+        fprintf(stderr, "Starting Display Thread:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
     }
     displayOutputThread = std::thread(&DisplayOutput::displayBlocks, displayOutput);
+    if (verbose) {
+        auto end = std::chrono::high_resolution_clock::now();
+        fprintf(stderr, "Starting InputStreamReader:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
+    }
     inputStreamReader->processStream();
 
     if (verbose) {

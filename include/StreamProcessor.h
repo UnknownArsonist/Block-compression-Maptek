@@ -107,6 +107,7 @@ class StreamProcessor::Compressor : public StreamProcessor::ProcessorModule {
         void OctreeCompression(ParentBlock *parent_block);
 
         // helper function
+        void processChunk(Chunk *chunk);
         void processParentBlocks(ParentBlock *parent_block);
         void printParentBlock(const std::vector<std::vector<std::vector<std::vector<char>>>> &parent_blocks);
         void compressStream();
@@ -119,6 +120,9 @@ class StreamProcessor::Compressor : public StreamProcessor::ProcessorModule {
         int *parent_x;
         int *parent_y;
         int *parent_z;
+        int *x_count;
+        int *y_count;
+        int *z_count;
 
         StreamBuffer *input_stream;
         StreamBuffer *output_stream;
@@ -133,7 +137,7 @@ class StreamProcessor::DisplayOutput : public StreamProcessor::ProcessorModule {
         void printSubBlock(SubBlock *sb);
 #ifdef WIN32
         void printSubBlock(HANDLE hStdout, SubBlock *sb);
-        void printSubBlocks(HANDLE hStdout, ParentBlock *pb);
+        void printSubBlocks(HANDLE hStdout, Chunk *pb);
 #endif
         void passBuffers(StreamBuffer *c_input_stream);
         void passValues(StreamProcessor *sp);

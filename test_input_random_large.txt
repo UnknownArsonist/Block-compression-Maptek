@@ -1,6 +1,7 @@
 128,128,128,2,2,2
-n, N
-o, O
+n,N
+o,O
+p,P
 
 nonooooonooooonooooooononnoonononooonnnnnonoonooononnooooononnooooononooooonoonnonnnononnonoooonoonnnnonnonnoonnnoonnnonnonnnnon
 onnononooonoooonnnonnonooooooonnooonnoonooonnnnnnonnnononnnooonnnnooonooononoonooonooonnooonnonoonnnnononnnonnnonooooooononnnnoo

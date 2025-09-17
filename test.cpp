@@ -41,6 +41,129 @@ BlockInfo parse_header(std::istream& input) {
     return info;
 }
 
+void process_model_greedy(const BlockInfo& info, std::istream& input) {
+    int slab_start_z = 0;
+
+    // Process the model in horizontal slabs to keep memory usage low.
+    while (slab_start_z < info.z_count) {
+        int slab_height = std::min(info.parent_z, info.z_count - slab_start_z);
+        if (slab_height <= 0) break;
+
+        std::vector<char> slab_data((size_t)info.x_count * info.y_count * slab_height);
+        std::vector<bool> visited(slab_data.size(), false);
+        
+        // Read the raw character data for the current slab.
+        for (int z = 0; z < slab_height; ++z) {
+            // Skips the blank line separating slices.
+            if (!(slab_start_z == 0 && z == 0)) {
+                 std::string dummy;
+                 std::getline(input, dummy);
+            }
+            for (int y = 0; y < info.y_count; ++y) {
+                std::string line;
+                if (!std::getline(input, line)) break;
+                for (int x = 0; x < info.x_count; ++x) {
+                    if (x < line.length()) {
+                       slab_data[GET_INDEX(x, y, z, info.x_count, info.y_count)] = line[x];
+                    }
+                }
+            }
+        }
+        
+        for (int py = 0; py < info.y_count; py += info.parent_y) {
+            for (int px = 0; px < info.x_count; px += info.parent_x) {
+                const int parent_x_end = std::min(px + info.parent_x, info.x_count);
+                const int parent_y_end = std::min(py + info.parent_y, info.y_count);
+                const int parent_z_end = slab_height;
+                
+                for (int z = 0; z < parent_z_end; ++z) {
+                    for (int y = py; y < parent_y_end; ++y) {
+                        for (int x = px; x < parent_x_end; ++x) {
+                            size_t current_idx = GET_INDEX(x, y, z, info.x_count, info.y_count);
+                            if (visited[current_idx])
+                                continue;
+
+                            char current_tag = slab_data[current_idx];
+
+                            // Determine max size in X
+                            int maxX = x + 1; // 0 1 7
+                            while (maxX < parent_z_end) {
+                                if(visited[GET_INDEX(maxX, y, z, info.x_count, info.y_count)] || slab_data[GET_INDEX(maxX, y, z, info.x_count, info.y_count)] != current_tag) break;
+                                maxX++; // 1 7
+                            }
+
+                            // Determine max size in Y
+                            int maxY = y + 1;         // 0
+                            while (maxY < parent_y_end)
+                            {
+                                bool uniformY = true;
+                                // x = 0 -> maxX = 1; 1 < 7
+                                for (int xi = x; xi < maxX; xi++)
+                                {
+                                    // x1 = 1
+                                    if (visited[GET_INDEX(xi, maxY, z, info.x_count, info.y_count)] || slab_data[GET_INDEX(xi, maxY, z, info.x_count, info.y_count)] != current_tag)
+                                    {
+                                        uniformY = false;
+                                        break;
+                                    }
+                                }
+                                if (!uniformY)
+                                    break;
+                                maxY++;
+                            }
+
+                            // Determine max size in Z
+                            int maxZ = z + 1;
+                            // checks the subblocks, are they uniform and did we alreadly visit them.
+                            while (maxZ < parent_z_end)
+                            {
+                                bool uniformZ = true;
+                                // y = 0 maxY = 1
+                                for (int yi = y; yi < maxY; yi++)
+                                {
+                                    // x = 0 MaxX = 1
+                                    for (int xi = x; xi < maxX; xi++)
+                                    {
+                                        if (visited[GET_INDEX(xi, yi, maxZ, info.x_count, info.y_count)] || slab_data[GET_INDEX(xi, yi, maxZ, info.x_count, info.y_count)] != current_tag)
+                                        {
+                                            uniformZ = false;
+                                            break;
+                                        }
+                                    }
+                                    if (!uniformZ)
+                                        break;
+                                }
+                                if (!uniformZ)
+                                    break;
+                                maxZ++;
+                            }
+
+                            // Mark all as visited
+                            for (int zz = z; zz < maxZ; zz++)
+                                for (int yy = y; yy < maxY; yy++)
+                                    for (int xx = x; xx < maxX; xx++)
+                                        visited[GET_INDEX(xx,yy,zz,info.x_count,info.y_count)] = true;
+
+                            // Output the packed block
+                            
+                            /* std::cerr << current_tag << std::endl;
+                            std::cerr << info.tag_to_label.at(current_tag) << std::endl; */
+                            std::cout << x << "," << y << "," << z + slab_start_z << ","
+                                      << maxX - x << "," << maxY - y << "," << maxZ - z << ","
+                                      << info.tag_to_label.at(current_tag) << "\n";
+                            //fprintf(stderr, "Compressor: %d,%d,%d,%s\n", sub_block->x, sub_block->y, sub_block->z, (*tag_table)[target].c_str());
+                            //output_stream->push((void **)&parent_block);
+                        }
+                        // x += 1; x = 1; x = 2
+                    }
+                    // y = 1
+                }
+            }
+        }
+        slab_start_z += slab_height;
+    }
+}
+
 // Main processing function using a boundary-constrained Greedy Meshing algorithm.
 void process_model_constrained_greedy(const BlockInfo& info, std::istream& input) {
     int slab_start_z = 0;
@@ -192,6 +315,8 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                                 }
                             }
                             
+                            /* std::cerr << current_tag << std::endl;
+                            std::cerr << info.tag_to_label.at(current_tag) << std::endl; */
                             std::cout << x << "," << y << "," << z + slab_start_z << ","
                                       << best_w << "," << best_h << "," << best_d << ","
                                       << info.tag_to_label.at(current_tag) << "\n";
@@ -200,6 +325,7 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                 }
             }
         }
+        //std::cerr << "chunk: " << slab_start_z << std::endl;
         slab_start_z += slab_height;
     }
 }
@@ -211,7 +337,30 @@ int main() {
 
     BlockInfo info = parse_header(std::cin);
     auto started = std::chrono::high_resolution_clock::now();
+    
     process_model_constrained_greedy(info, std::cin);
+    /* int slab_start_z = 0;
+    while (slab_start_z < info.z_count) {
+        int slab_height = std::min(info.parent_z, info.z_count - slab_start_z);
+        std::vector<char> slab_data((size_t)info.x_count * info.y_count * slab_height);
+        for (int z = 0; z < slab_height; ++z) {
+            // Skips the blank line separating slices.
+            if (!(slab_start_z == 0 && z == 0)) {
+                    std::string dummy;
+                    std::getline(std::cin, dummy);
+            }
+            for (int y = 0; y < info.y_count; ++y) {
+                std::string line;
+                if (!std::getline(std::cin, line)) break;
+                for (int x = 0; x < info.x_count; ++x) {
+                    if (x < line.length()) {
+                        slab_data[GET_INDEX(x, y, z, info.x_count, info.y_count)] = line[x];
+                    }
+                }
+            }
+        }
+        slab_start_z += slab_height;
+    } */
     auto end = std::chrono::high_resolution_clock::now();
     std::cerr << "InputStreamReader Runtime:\n  " << std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count() << std::endl;
 

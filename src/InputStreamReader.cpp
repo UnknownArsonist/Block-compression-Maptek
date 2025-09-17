@@ -96,109 +96,34 @@ void StreamProcessor::InputStreamReader::getLegendFromStream(std::unordered_map<
 }
 
 static void processStream_char(FILE *input_stream, StreamProcessor::StreamBuffer *output_stream, int *x_count, int *y_count, int *z_count, int *parent_x, int* parent_y, int *parent_z, StreamProcessor *sp) {
-    int num_parent_blocks = (*x_count / *parent_x) * (*y_count / *parent_y);
-
-    ParentBlock *parent_blocks[num_parent_blocks];
-    char uniform[(num_parent_blocks/8)];
-    memset(uniform, 0b11111111, sizeof(char) * (num_parent_blocks/8));
-    //printf(": %d\n", num_parent_blocks);
-    memset(parent_blocks, 0, sizeof(ParentBlock*) * num_parent_blocks);
-
-    char ch;
-    int n = 0;
+    Chunk *chunk = NULL;
     int x = 0;
-    int y = 0;
-    int z = 0;
-    int blocks = 0;
+    char line[1024];
 
-    auto idx = [&](int x, int y, int z){ return (x * *parent_y * *parent_z) + (y * *parent_z) + z; };
+    //auto idx = [&](int x, int y, int z){ return x + (y * *parent_x) + (z * *parent_x * *parent_y); };
 
-    while ((ch = getc(input_stream)) != EOF) {
-        if (ch == '\n') {
-            n++;
-            x = 0;
-            y++;
-            if (n == 2) {
-                y = 0;
-                z++;
+    for (int z = 0; z < *z_count; z++) {
+        for (int y = 0; y < *y_count; y++) {
+            if (fgets(line, 1024, input_stream) == NULL) fprintf(stderr, "ERROR READ LINE (%d, %d, %d)\n", x, y, z);
+            //fprintf(stderr, "l: %s\n", line);
+            int chunk_relative_z = z % *parent_z;
+            if (chunk == NULL) {
+                chunk = (Chunk*)malloc(sizeof(Chunk));
+                chunk->id = z / *parent_z;
+                chunk->block = (char*)malloc(*x_count * *y_count * *parent_z * sizeof(char));
             }
-        } else if (ch != '\r') {
-            int current_parent_block = (x / *parent_x) + (*x_count / *parent_x) * (y / *parent_y);
-            if (parent_blocks[current_parent_block] == NULL) {
-                parent_blocks[current_parent_block] = (ParentBlock*)malloc(sizeof(ParentBlock));
-                parent_blocks[current_parent_block]->x = x;
-                parent_blocks[current_parent_block]->y = y;
-                parent_blocks[current_parent_block]->z = z;
-                parent_blocks[current_parent_block]->block = (char *)malloc(*parent_x * *parent_y * *parent_z);
-                parent_blocks[current_parent_block]->first = ch;
-                parent_blocks[current_parent_block]->sub_blocks = nullptr;
-                parent_blocks[current_parent_block]->sub_block_num = 0;
-            }
-            int parent_relative_x = x % *parent_x;
-            int parent_relative_y = y % *parent_y;
-            int parent_relative_z = z % *parent_z;
             //printf("[%d] (%d, %d, %d), (%d, %d, %d): %c\n", current_parent_block, x, y, z, parent_relative_x, parent_relative_y, parent_relative_z, ch);
 
-            parent_blocks[current_parent_block]->block[idx(parent_relative_x, parent_relative_y, parent_relative_z)] = ch;
-            if (ch != parent_blocks[current_parent_block]->first) {
-                uniform[current_parent_block/8] &= ((0b11111110 << (current_parent_block % 8)) | (1U << ((current_parent_block % 8)-1)));
-            }
+            //fprintf(stderr, "cb: %d, idx: %d\n", current_parent_block+i, idx(0, parent_relative_y, parent_relative_z));
+            memcpy(&(chunk->block[(*x_count * y) + (*x_count * *y_count * chunk_relative_z)]), line, *x_count);
 
-            /* char *block = parent_blocks[current_parent_block]->block;
-            if (parent_relative_x < 1 || block[idx(parent_relative_x-1,parent_relative_y,parent_relative_z)] != ch) {
-                //Make Face
-                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x-1,parent_relative_y,parent_relative_z)], 0);
+            if (y == *y_count - 1 && chunk_relative_z == *parent_z - 1) {
+                //fprintf(stderr, "I: (%d, %d, %d)\n", x, y, z);
+                output_stream->push((void**)&chunk);
+                chunk = NULL;
             }
-            if (parent_relative_y < 1 || block[idx(parent_relative_x,parent_relative_y-1,parent_relative_z)] != ch) {
-                //Make Face
-                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y-1,parent_relative_z)], 1);
-            }
-            if (parent_relative_z < 1 || block[idx(parent_relative_x,parent_relative_y,parent_relative_z-1)] != ch) {
-                //Make Face
-                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y,parent_relative_z-1)], 2);
-            } */
-            /* if (parent_relative_x >= *parent_x-1) {
-                //Make Face
-                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x+1,parent_relative_y,parent_relative_z)], 3);
-            }
-            if (parent_relative_y >= *parent_y-1) {
-                //Make Face
-                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y+1,parent_relative_z)], 4);
-            }
-            if (parent_relative_z >= *parent_z-1) {
-                //Make Face
-                makeFace(parent_relative_x, parent_relative_y, parent_relative_z, ch, block[idx(parent_relative_x,parent_relative_y,parent_relative_z+1)], 5);
-            } */
-
-            //fprintf(stderr, "(%d, %d, %d) %c\n", x, y, z, ch);
-            if (parent_relative_x == *parent_x - 1 && parent_relative_y == *parent_y - 1 && parent_relative_z == *parent_z - 1) {
-                //fprintf(stderr, " %d / %d (%d, %d, %d)\n", current_parent_block, num_parent_blocks, x, y, z);
-                //fprintf(stderr, "in: %d / %d\n", ((int)(current_parent_block/8))*8+(current_parent_block%8), current_parent_block);
-                if (uniform[current_parent_block/8] >> (current_parent_block % 8) & 1/* && false */) {
-                    free(parent_blocks[current_parent_block]->block);
-                    parent_blocks[current_parent_block]->block = NULL;
-                    parent_blocks[current_parent_block]->sub_blocks = (SubBlock **)malloc(sizeof(SubBlock*));
-                    SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
-                    sub_block->x = parent_blocks[current_parent_block]->x;
-                    sub_block->y = parent_blocks[current_parent_block]->y;
-                    sub_block->z = parent_blocks[current_parent_block]->z;
-                    sub_block->l = *parent_x;
-                    sub_block->w = *parent_y;
-                    sub_block->h = *parent_z;
-                    sub_block->tag = parent_blocks[current_parent_block]->first;
-                    parent_blocks[current_parent_block]->sub_blocks[0] = sub_block;
-                    parent_blocks[current_parent_block]->sub_block_num = 1;
-                } else {
-                    //free(parent_blocks[current_parent_block]);
-                }
-                output_stream->push((void **)&parent_blocks[current_parent_block]);
-                parent_blocks[current_parent_block] = NULL;
-                blocks++;
-                // output_stream->printBuffer();
-            }
-            x++;
-            n = 0;
         }
+        fgets(line, 10, input_stream);
     }
     //fprintf(stderr, "Input End (%d, %d, %d) %d\n", x, y, z, blocks);
     output_stream->push(NULL);
