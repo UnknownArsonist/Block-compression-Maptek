@@ -5,7 +5,7 @@
 
 int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
-    int num_compress_threads = 1;
+    int num_compress_threads = 4;
     if (argc > 1) {
         int c = atoi(argv[1]);
         if (c >= 1 && c <= 16) {
@@ -21,5 +21,7 @@ int main(int argc, char **argv) {
     // Uncomment to test with hardcoded data
     // compressor.compressParentBlock();
     delete processor;
+    int *c = NULL;
+    c[1038] = 5;
     return 0;
 }
