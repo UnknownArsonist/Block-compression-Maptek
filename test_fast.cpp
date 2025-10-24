@@ -572,6 +572,4 @@ int main(int argc, char **argv) {
         auto end = std::chrono::high_resolution_clock::now();
         fprintf(stderr, "Output Runtime:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
     }
-    int *c = NULL;
-    c[14323] = 4;
 }
