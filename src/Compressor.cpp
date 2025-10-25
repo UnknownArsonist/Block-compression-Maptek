@@ -64,37 +64,32 @@ void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
     free(parent_block);
 }
 void StreamProcessor::Compressor::processChunk(Chunk *chunk) {
-    char *slab_data = chunk->block;
-    std::vector<bool> visited(*x_count * *y_count * *parent_z, false);
 
     chunk->sub_blocks = (SubBlock**)malloc(*x_count * *y_count * *parent_z * sizeof(SubBlock*));
     chunk->sub_block_num = 0;
+    bool *zeros = (bool*)calloc(*parent_x, sizeof(bool));
     for (int py = 0; py < *y_count; py += *parent_y) {
         for (int px = 0; px < *x_count; px += *parent_x) {
+            bool *visited = (bool*)calloc(*parent_x * *parent_y * *parent_z, sizeof(bool));
             //fprintf(stderr, "(%d, %d, %d) %d\n", px, py, chunk->id, current_parent_block);
             
-            //fprintf(stderr, "Compressor: %d,%d,%d,%s\n", px, py, pz, (*tag_table)[chunk->block[0]].c_str());
-            // Define the absolute boundaries for this parent block.
-            const int parent_x_end = std::min(px + *parent_x, *x_count);
-            const int parent_y_end = std::min(py + *parent_y, *y_count);
-            const int parent_z_end = *parent_z;
             // Now run greedy meshing *inside* these boundaries.
             //TODO: maybe use vector with smaller initial array size which can then be dynamically extended if necessary
-            std::vector<std::vector<std::vector<bool>>> visited(*parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
+            //std::vector<std::vector<std::vector<bool>>> visited(*parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
             for (int z = 0; z < *parent_z; z++)
             {
                 for (int y = 0; y < *parent_y; y++)
                 {
                     for (int x = 0; x < *parent_x; x++)
                     {
-                        if (visited[z][y][x])
+                        if (visited[(z * *parent_y * *parent_x) + (y * *parent_x) + x])
                             continue;
 
                         char target = chunk->block[px + x + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)];
 
                         // Determine max size in X
                         int maxX = x + 1; // 0 1 7
-                        while (maxX < *parent_x && chunk->block[px + maxX + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)] == target && !visited[z][y][maxX])
+                        while (maxX < *parent_x && chunk->block[px + maxX + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)] == target && !visited[(z * *parent_y * *parent_x) + (y * *parent_x) + maxX])
                             maxX++; // 1 7
 
                         int width = maxX - x;
@@ -104,7 +99,7 @@ void StreamProcessor::Compressor::processChunk(Chunk *chunk) {
                         {
                             bool uniformY = true;
                             // x = 0 -> maxX = 1; 1 < 7
-                            if (memcmp(&(chunk->block[px + x + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)]), &(chunk->block[px + x + ((py + maxY) * *parent_x) + (z * *parent_x * *parent_y)]), width) != 0) {
+                            if (memcmp(&(chunk->block[px + x + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)]), &(chunk->block[px + x + ((py + maxY) * *parent_x) + (z * *parent_x * *parent_y)]), width) != 0 || memcmp(&(visited[(z * *parent_y * *parent_x) + (maxY * *parent_x) + x]), zeros, width) != 0) {
                                 uniformY = false;
                             }
                             if (!uniformY)
@@ -122,7 +117,7 @@ void StreamProcessor::Compressor::processChunk(Chunk *chunk) {
                             for (int yi = y; yi < maxY; yi++)
                             {
                                 // x = 0 MaxX = 1
-                                if (memcmp(&(chunk->block[px + x + ((py + y) * *x_count) + (z * *x_count * *y_count)]), &(chunk->block[px + x + ((py + yi) * *x_count) + (maxZ * *parent_x * *parent_y)]), width) != 0) {
+                                if (memcmp(&(chunk->block[px + x + ((py + y) * *x_count) + (z * *x_count * *y_count)]), &(chunk->block[px + x + ((py + yi) * *x_count) + (maxZ * *parent_x * *parent_y)]), width) != 0 || memcmp(&(visited[(maxZ * *parent_y * *parent_x) + (yi * *parent_x) + x]), zeros, width) != 0) {
                                     uniformZ = false;
                                 }
                                 if (!uniformZ)
@@ -137,7 +132,7 @@ void StreamProcessor::Compressor::processChunk(Chunk *chunk) {
                         for (int zz = z; zz < maxZ; zz++)
                             for (int yy = y; yy < maxY; yy++)
                                 for (int xx = x; xx < maxX; xx++)
-                                    visited[zz][yy][xx] = true;
+                                    visited[(zz * *parent_y * *parent_x) + (yy * *parent_x) + xx] = true;
 
                         // Output the packed block
                         SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
@@ -157,9 +152,11 @@ void StreamProcessor::Compressor::processChunk(Chunk *chunk) {
                 }
                 // y = 1
             }
+            free(visited);
             //fprintf(stderr, "check4\n");
         }
     }
+    free(zeros);
     free(chunk->block);
     output_stream->push((void **)&(chunk));
 }
