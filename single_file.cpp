@@ -347,19 +347,10 @@ void processChunk(Chunk *chunk, StreamBuffer *output_stream, int x_count, int y_
             //fprintf(stderr, "check4\n");
         }
     }
-    int i = 1;
     chunk->sub_block_num = sub_block_nums[0];
-    int p = 0;
-    while (i < (x_count / parent_x) * (y_count / parent_y)) {
-        if (sub_block_nums[i] < 1) {
-            i++;
-            p = 0;
-            continue;
-        }
-        chunk->sub_blocks[chunk->sub_block_num] = chunk->sub_blocks[((parent_x * parent_y * parent_z) * i) + p];
-        p++;
-        chunk->sub_block_num++;
-        sub_block_nums[i]--;
+    for (int i = 1; i < (x_count / parent_x) * (y_count / parent_y); i++) {
+        memcpy(&(chunk->sub_blocks[chunk->sub_block_num]), &(chunk->sub_blocks[((parent_x * parent_y * parent_z) * i)]), sub_block_nums[i] * sizeof(SubBlock*));
+        chunk->sub_block_num += sub_block_nums[i];
     }
     free(sub_block_nums);
     free(chunk->block);
@@ -471,7 +462,7 @@ void displayBlocks(StreamBuffer *input_stream, std::unordered_map<char, std::str
     next_blocks.resize(num_chunk, NULL);
     int next_count = 0;
 
-    int buf_size = 8192;
+    int buf_size = 16384;
     int stored = 0;
     char *buffer = (char*)malloc(sizeof(char) * buf_size);
 
