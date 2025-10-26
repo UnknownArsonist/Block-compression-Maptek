@@ -32,7 +32,14 @@ BlockInfo parse_header(std::istream& input) {
     std::getline(ss, token, ','); info.parent_z = std::stoi(token);
 
     std::string tag_line;
-    while (std::getline(input, tag_line) && !tag_line.empty()) {
+    while (std::getline(input, tag_line)) {
+        // Handle Windows CRLF line endings
+        if (!tag_line.empty() && tag_line.back() == '\r') {
+            tag_line.pop_back();
+        }
+        // Empty line marks end of tag table
+        if (tag_line.empty()) break;
+        
         if(tag_line.length() > 1 && tag_line[1] == ',') {
             info.tag_to_label[tag_line[0]] = tag_line.substr(2);
         }
@@ -62,6 +69,10 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
             for (int y = 0; y < info.y_count; ++y) {
                 std::string line;
                 if (!std::getline(input, line)) break;
+                // Handle Windows CRLF line endings by removing trailing \r
+                if (!line.empty() && line.back() == '\r') {
+                    line.pop_back();
+                }
                 for (int x = 0; x < info.x_count; ++x) {
                     if (x < line.length()) {
                        slab_data[GET_INDEX(x, y, z, info.x_count, info.y_count)] = line[x];
@@ -88,11 +99,68 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                             if (visited[current_idx]) continue;
 
                             char current_tag = slab_data[current_idx];
+                            // Skip if tag is not in the map (e.g., spaces or air blocks)
+                            if (info.tag_to_label.find(current_tag) == info.tag_to_label.end()) {
+                                visited[current_idx] = true;
+                                continue;
+                            }
                             int best_w = 1, best_h = 1, best_d = 1; // Default to 1x1x1
-                            size_t max_volume = 0;
+                            size_t max_volume = 1;
+                            int best_start_x = x, best_start_y = y, best_start_z = z;
 
-                            // --- OPTIMIZATION: Try all 6 expansion orders ---
-                            for (int order = 0; order < 6; ++order) {
+                            // Calculate available space in each dimension for smart ordering
+                            int avail_x = parent_x_end - x;
+                            int avail_y = parent_y_end - y;
+                            int avail_z = parent_z_end - z;
+                            
+                            // OPTIMIZATION: Analyze which dimensions have longest uniform runs
+                            // This helps prioritize the best expansion orders
+                            int run_x = 0, run_y = 0, run_z = 0;
+                            for (int i = 0; i < std::min(avail_x, 16); ++i) {
+                                size_t idx = GET_INDEX(x + i, y, z, info.x_count, info.y_count);
+                                if (!visited[idx] && slab_data[idx] == current_tag) run_x++;
+                                else break;
+                            }
+                            for (int i = 0; i < std::min(avail_y, 16); ++i) {
+                                size_t idx = GET_INDEX(x, y + i, z, info.x_count, info.y_count);
+                                if (!visited[idx] && slab_data[idx] == current_tag) run_y++;
+                                else break;
+                            }
+                            for (int i = 0; i < std::min(avail_z, 16); ++i) {
+                                size_t idx = GET_INDEX(x, y, z + i, info.x_count, info.y_count);
+                                if (!visited[idx] && slab_data[idx] == current_tag) run_z++;
+                                else break;
+                            }
+                            
+                            // Try all 6 orders with smart prioritization based on actual runs
+                            int orders[6];
+                            if (run_x >= run_y && run_y >= run_z) {
+                                orders[0] = 0; orders[1] = 2; orders[2] = 4; orders[3] = 1; orders[4] = 3; orders[5] = 5;
+                            } else if (run_x >= run_z && run_z >= run_y) {
+                                orders[0] = 1; orders[1] = 4; orders[2] = 2; orders[3] = 0; orders[4] = 3; orders[5] = 5;
+                            } else if (run_y >= run_x && run_x >= run_z) {
+                                orders[0] = 2; orders[1] = 0; orders[2] = 5; orders[3] = 3; orders[4] = 1; orders[5] = 4;
+                            } else if (run_y >= run_z && run_z >= run_x) {
+                                orders[0] = 3; orders[1] = 5; orders[2] = 0; orders[3] = 2; orders[4] = 1; orders[5] = 4;
+                            } else if (run_z >= run_x && run_x >= run_y) {
+                                orders[0] = 4; orders[1] = 0; orders[2] = 3; orders[3] = 1; orders[4] = 2; orders[5] = 5;
+                            } else {
+                                orders[0] = 5; orders[1] = 3; orders[2] = 1; orders[3] = 4; orders[4] = 2; orders[5] = 0;
+                            }
+
+                            // Try all expansion orders with improved early termination
+                            bool found_perfect_block = false;
+                            size_t max_possible_remaining = (size_t)avail_x * avail_y * avail_z;
+                            
+                            for (int order_idx = 0; order_idx < 6; ++order_idx) {
+                                int order = orders[order_idx];
+                                
+                                // Early termination: skip orders that can't beat current best
+                                if (max_volume > 0 && max_volume >= max_possible_remaining) {
+                                    found_perfect_block = true;
+                                    break;
+                                }
+                                
                                 int w = 1, h = 1, d = 1;
 
                                 // The primary axis of expansion
@@ -109,7 +177,7 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                                     case 5: u_start=z; v_start=y; w_coord_start=x; u_end=parent_z_end; v_end=parent_y_end; w_coord_end=parent_x_end; break; // z,y,x
                                 }
 
-                                // Expand in the first dimension
+                                // Expand in the first dimension with optimized checking
                                 while(u_start + w < u_end) {
                                     int cur_x, cur_y, cur_z;
                                     switch(order){
@@ -120,7 +188,8 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                                         case 4: std::tie(cur_x, cur_y, cur_z) = std::make_tuple(v_start, w_coord_start, u_start + w); break;
                                         case 5: std::tie(cur_x, cur_y, cur_z) = std::make_tuple(w_coord_start, v_start, u_start + w); break;
                                     }
-                                    if(visited[GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count)] || slab_data[GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count)] != current_tag) break;
+                                    size_t idx = GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count);
+                                    if(visited[idx] || slab_data[idx] != current_tag) break;
                                     w++;
                                 }
 
@@ -137,7 +206,8 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                                             case 4: std::tie(cur_x, cur_y, cur_z) = std::make_tuple(v_start + h, w_coord_start, u_start + i); break;
                                             case 5: std::tie(cur_x, cur_y, cur_z) = std::make_tuple(w_coord_start, v_start + h, u_start + i); break;
                                         }
-                                        if(visited[GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count)] || slab_data[GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count)] != current_tag) { can_expand_v = false; break; }
+                                        size_t idx = GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count);
+                                        if(visited[idx] || slab_data[idx] != current_tag) { can_expand_v = false; break; }
                                     }
                                     if(can_expand_v) h++;
                                 }
@@ -156,7 +226,8 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                                                 case 4: std::tie(cur_x, cur_y, cur_z) = std::make_tuple(v_start + j, w_coord_start + d, u_start + i); break;
                                                 case 5: std::tie(cur_x, cur_y, cur_z) = std::make_tuple(w_coord_start + d, v_start + j, u_start + i); break;
                                             }
-                                            if(visited[GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count)] || slab_data[GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count)] != current_tag) { can_expand_w = false; break; }
+                                            size_t idx = GET_INDEX(cur_x, cur_y, cur_z, info.x_count, info.y_count);
+                                            if(visited[idx] || slab_data[idx] != current_tag) { can_expand_w = false; break; }
                                         }
                                         if(!can_expand_w) break;
                                     }
@@ -167,11 +238,6 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                                 if (volume > max_volume) {
                                     max_volume = volume;
                                     switch(order) {
-                                        case 0: case 1: std::tie(best_w, best_h, best_d) = std::make_tuple(w,h,d); break;
-                                        case 2: case 3: std::tie(best_w, best_h, best_d) = std::make_tuple(h,w,d); break;
-                                        case 4: case 5: std::tie(best_w, best_h, best_d) = std::make_tuple(h,d,w); break;
-                                    }
-                                     switch(order) {
                                         case 0: std::tie(best_w, best_h, best_d) = std::make_tuple(w,h,d); break;
                                         case 1: std::tie(best_w, best_h, best_d) = std::make_tuple(w,d,h); break;
                                         case 2: std::tie(best_w, best_h, best_d) = std::make_tuple(h,w,d); break;
@@ -179,9 +245,13 @@ void process_model_constrained_greedy(const BlockInfo& info, std::istream& input
                                         case 4: std::tie(best_w, best_h, best_d) = std::make_tuple(h,d,w); break;
                                         case 5: std::tie(best_w, best_h, best_d) = std::make_tuple(d,h,w); break;
                                     }
+                                    // Check if this is a perfect block (occupies all available space)
+                                    if (max_volume >= max_possible_remaining) {
+                                        found_perfect_block = true;
+                                    }
                                 }
                             }
-
+                            
                             // Mark all voxels in the new best block as visited.
                             for (int dz = 0; dz < best_d; ++dz) {
                                 for (int dy = 0; dy < best_h; ++dy) {
