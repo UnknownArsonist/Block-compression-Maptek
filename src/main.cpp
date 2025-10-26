@@ -4,7 +4,8 @@
 */
 
 int main(int argc, char **argv) {
-    int num_compress_threads = 1;
+    std::ios_base::sync_with_stdio(false);
+    int num_compress_threads = 4;
     if (argc > 1) {
         int c = atoi(argv[1]);
         if (c >= 1 && c <= 16) {

@@ -1,6 +1,8 @@
 #include "StreamProcessor.h"
 #include "OctTreeNode.h"
 
+#define GET_INDEX(x, y, z, x_count, y_count) ((size_t)(z) * (size_t)(x_count) * (size_t)(y_count) + (size_t)(y) * (size_t)(x_count) + (size_t)(x))
+
 StreamProcessor::Compressor::Compressor()
 {
 }
@@ -61,6 +63,104 @@ void StreamProcessor::Compressor::OctreeCompression(ParentBlock *parent_block)
     octTree.deleteTree(root);
     free(parent_block);
 }
+void StreamProcessor::Compressor::processChunk(Chunk *chunk) {
+
+    chunk->sub_blocks = (SubBlock**)malloc(*x_count * *y_count * *parent_z * sizeof(SubBlock*));
+    chunk->sub_block_num = 0;
+    bool *zeros = (bool*)calloc(*parent_x, sizeof(bool));
+    for (int py = 0; py < *y_count; py += *parent_y) {
+        for (int px = 0; px < *x_count; px += *parent_x) {
+            bool *visited = (bool*)calloc(*parent_x * *parent_y * *parent_z, sizeof(bool));
+            //fprintf(stderr, "(%d, %d, %d) %d\n", px, py, chunk->id, current_parent_block);
+            
+            // Now run greedy meshing *inside* these boundaries.
+            //TODO: maybe use vector with smaller initial array size which can then be dynamically extended if necessary
+            //std::vector<std::vector<std::vector<bool>>> visited(*parent_z, std::vector<std::vector<bool>>(*parent_y, std::vector<bool>(*parent_x, false)));
+            for (int z = 0; z < *parent_z; z++)
+            {
+                for (int y = 0; y < *parent_y; y++)
+                {
+                    for (int x = 0; x < *parent_x; x++)
+                    {
+                        if (visited[(z * *parent_y * *parent_x) + (y * *parent_x) + x])
+                            continue;
+
+                        char target = chunk->block[px + x + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)];
+
+                        // Determine max size in X
+                        int maxX = x + 1; // 0 1 7
+                        while (maxX < *parent_x && chunk->block[px + maxX + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)] == target && !visited[(z * *parent_y * *parent_x) + (y * *parent_x) + maxX])
+                            maxX++; // 1 7
+
+                        int width = maxX - x;
+                        // Determine max size in Y
+                        int maxY = y + 1;         // 0
+                        while (maxY < *parent_y)
+                        {
+                            bool uniformY = true;
+                            // x = 0 -> maxX = 1; 1 < 7
+                            if (memcmp(&(chunk->block[px + x + ((py + y) * *parent_x) + (z * *parent_x * *parent_y)]), &(chunk->block[px + x + ((py + maxY) * *parent_x) + (z * *parent_x * *parent_y)]), width) != 0 || memcmp(&(visited[(z * *parent_y * *parent_x) + (maxY * *parent_x) + x]), zeros, width) != 0) {
+                                uniformY = false;
+                            }
+                            if (!uniformY)
+                                break;
+                            maxY++;
+                        }
+
+                        // Determine max size in Z
+                        int maxZ = z + 1;
+                        // checks the subblocks, are they uniform and did we alreadly visit them.
+                        while (maxZ < *parent_z)
+                        {
+                            bool uniformZ = true;
+                            // y = 0 maxY = 1
+                            for (int yi = y; yi < maxY; yi++)
+                            {
+                                // x = 0 MaxX = 1
+                                if (memcmp(&(chunk->block[px + x + ((py + y) * *x_count) + (z * *x_count * *y_count)]), &(chunk->block[px + x + ((py + yi) * *x_count) + (maxZ * *parent_x * *parent_y)]), width) != 0 || memcmp(&(visited[(maxZ * *parent_y * *parent_x) + (yi * *parent_x) + x]), zeros, width) != 0) {
+                                    uniformZ = false;
+                                }
+                                if (!uniformZ)
+                                    break;
+                            }
+                            if (!uniformZ)
+                                break;
+                            maxZ++;
+                        }
+
+                        // Mark all as visited
+                        for (int zz = z; zz < maxZ; zz++)
+                            for (int yy = y; yy < maxY; yy++)
+                                for (int xx = x; xx < maxX; xx++)
+                                    visited[(zz * *parent_y * *parent_x) + (yy * *parent_x) + xx] = true;
+
+                        // Output the packed block
+                        SubBlock *sub_block = (SubBlock *)malloc(sizeof(SubBlock));
+                        sub_block->x = px + x;
+                        sub_block->y = py + y;
+                        sub_block->z = (chunk->id * *parent_z) + z;
+                        sub_block->l = maxX - x;
+                        sub_block->w = maxY - y;
+                        sub_block->h = maxZ - z;
+                        sub_block->tag = target;
+                        chunk->sub_blocks[chunk->sub_block_num] = sub_block;
+                        chunk->sub_block_num++;
+                        //fprintf(stderr, "Compressor: %d,%d,%d,%s\n", sub_block->x, sub_block->y, sub_block->z, (*tag_table)[target].c_str());
+                        //output_stream->push((void **)&parent_block);
+                    }
+                    // x += 1; x = 1; x = 2
+                }
+                // y = 1
+            }
+            free(visited);
+            //fprintf(stderr, "check4\n");
+        }
+    }
+    free(zeros);
+    free(chunk->block);
+    output_stream->push((void **)&(chunk));
+}
+
 void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 {
     // std::cout << parent_block->block-
@@ -93,27 +193,22 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
                     if (visited[z][y][x])
                         continue;
 
-                    char target = parent_block->block[(x * *parent_y * *parent_z) + (y * *parent_z) + z];
+                    char target = parent_block->block[x + (y * *parent_x) + (z * *parent_x * *parent_y)];
 
                     // Determine max size in X
                     int maxX = x + 1; // 0 1 7
-                    while (maxX < *parent_x && parent_block->block[(maxX * *parent_y * *parent_z) + (y * *parent_z) + z] == target && !visited[z][y][maxX])
+                    while (maxX < *parent_x && parent_block->block[maxX + (y * *parent_x) + (z * *parent_x * *parent_y)] == target && !visited[z][y][maxX])
                         maxX++; // 1 7
 
+                    int width = maxX - x;
                     // Determine max size in Y
                     int maxY = y + 1;         // 0
                     while (maxY < *parent_y)
                     {
                         bool uniformY = true;
                         // x = 0 -> maxX = 1; 1 < 7
-                        for (int xi = x; xi < maxX; xi++)
-                        {
-                            // x1 = 1
-                            if (parent_block->block[(xi * *parent_y * *parent_z) + (maxY * *parent_z) + z] != target || visited[z][maxY][xi])
-                            {
-                                uniformY = false;
-                                break;
-                            }
+                        if (memcmp(&(parent_block->block[x + (y * *parent_x) + (z * *parent_x * *parent_y)]), &(parent_block->block[x + (maxY * *parent_x) + (z * *parent_x * *parent_y)]), width) != 0) {
+                            uniformY = false;
                         }
                         if (!uniformY)
                             break;
@@ -130,13 +225,8 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
                         for (int yi = y; yi < maxY; yi++)
                         {
                             // x = 0 MaxX = 1
-                            for (int xi = x; xi < maxX; xi++)
-                            {
-                                if (parent_block->block[(xi * *parent_y * *parent_z) + (yi * *parent_z) + maxZ] != target || visited[maxZ][yi][xi])
-                                {
-                                    uniformZ = false;
-                                    break;
-                                }
+                            if (memcmp(&(parent_block->block[x + (y * *parent_x) + (z * *parent_x * *parent_y)]), &(parent_block->block[x + (yi * *parent_x) + (maxZ * *parent_x * *parent_y)]), width) != 0) {
+                                uniformZ = false;
                             }
                             if (!uniformZ)
                                 break;
@@ -188,27 +278,24 @@ void StreamProcessor::Compressor::processParentBlocks(ParentBlock *parent_block)
 
 void StreamProcessor::Compressor::compressStream()
 {
-    ParentBlock *parent_block;
-    int block_count = 0;
+    Chunk *chunk;
 
     do
     {
         //fprintf(stderr, "Compressor: get val\n");
-        input_stream->pop((void **)&parent_block);
+        input_stream->pop((void **)&chunk);
 
-        if (parent_block == nullptr)
+        if (chunk == nullptr)
         {
             //fprintf(stderr, "IN TO COMP END\n");
             output_stream->push(NULL);
             break;
         }
 
-        block_count++;
-
         // Safety check: if we've processed too many blocks, use simpler algorithm
-        processParentBlocks(parent_block);
+        processChunk(chunk);
 
-    } while (parent_block != NULL);
+    } while (chunk != NULL);
 }
 // -----------ENDS HERE-------- ------------- //
 
@@ -228,6 +315,9 @@ void StreamProcessor::Compressor::passValues(StreamProcessor *sp) {
     parent_x = &(sp->parent_x);
     parent_y = &(sp->parent_y);
     parent_z = &(sp->parent_z);
+    x_count = &(sp->x_count);
+    y_count = &(sp->y_count);
+    z_count = &(sp->z_count);
     tag_table = &(sp->tag_table);
     input_stream = (sp->inputToCompressorBuffer);
     output_stream = (sp->compressorToOutputBuffer);
