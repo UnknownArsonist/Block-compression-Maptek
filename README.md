@@ -61,3 +61,18 @@ The Block Model Compression Algorithm is designed to reduce the size of geologic
 ## Software Architecture
 
 ![Alt text](download.png)
+
+---
+
+## Project Modules Layout
+
+- **StreamProcessor**
+- **Compressor**
+  **|=>feature-compressor**
+  **|->feature/compressor/BruteForceCompression**
+  **|->feature/compressor/OctTreeCompression**
+  **|->feature/compressor/alg1**
+  **|->feature/compressor/alg4**
+  **|->feature/compressor/hybrid**
+- **Testing**
+  **|->**
