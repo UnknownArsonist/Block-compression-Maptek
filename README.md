@@ -60,6 +60,4 @@ The Block Model Compression Algorithm is designed to reduce the size of geologic
 
 ## Software Architecture
 
-```
 ![Alt text](download.png)
-```
