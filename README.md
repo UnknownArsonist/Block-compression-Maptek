@@ -60,4 +60,4 @@ The Block Model Compression Algorithm is designed to reduce the size of geologic
 
 ## Known Bugs & Limitations
 
-- **No GUI Interface**: The app sometimes loses connection to MySQL and requires a restart.
+- **No GUI Interface**: The application currently runs via the command line only.
