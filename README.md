@@ -1,4 +1,4 @@
-# Terrace Bookshop
+# The Block Model Compression Algorithm
 
 ## Description
 
