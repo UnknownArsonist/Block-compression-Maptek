@@ -42,6 +42,12 @@ The Block Model Compression Algorithm is designed to reduce the size of geologic
 
 ---
 
+## Software Architecture
+
+![Alt text](download.png)
+
+---
+
 ## Features
 
 - **StreamProcessor**: Parses input files and sends the data to the Compressor module for processing.
@@ -55,24 +61,3 @@ The Block Model Compression Algorithm is designed to reduce the size of geologic
 ## Known Bugs & Limitations
 
 - **No GUI Interface**: The app sometimes loses connection to MySQL and requires a restart.
-
----
-
-## Software Architecture
-
-![Alt text](download.png)
-
----
-
-## Project Modules Layout
-
-- **StreamProcessor**
-- **Compressor**
-  **|=>feature-compressor**
-  **|->feature/compressor/BruteForceCompression**
-  **|->feature/compressor/OctTreeCompression**
-  **|->feature/compressor/alg1**
-  **|->feature/compressor/alg4**
-  **|->feature/compressor/hybrid**
-- **Testing**
-  **|->**
