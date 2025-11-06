@@ -1,41 +1,26 @@
-#include <vector>
 #include <string>
-#include <sstream>
 #include <unordered_map>
 #include <cstdio>
 #include <thread>
 #include <cstring>
 #include <mutex>
-#include <condition_variable>
 #include <chrono>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-#include <algorithm> // For std::min
-#include <tuple>     // For std::tie
 #ifdef WIN32
 #include <windows.h>
 #endif
 #include <omp.h>
 
 struct SubBlock {
-    int x;
-    int y;
-    int z;
-    int l;
-    int w;
-    int h;
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
+    uint16_t l;
+    uint16_t w;
+    uint16_t h;
     char tag;
-};
-
-struct ParentBlock {
-    int x;
-    int y;
-    int z;
-    char *block;
-    char first;
-    SubBlock** sub_blocks;
-    int sub_block_num;
 };
 
 struct Chunk {
@@ -68,9 +53,6 @@ class StreamBuffer {
 
         std::mutex read_mutex;
         std::mutex write_mutex;
-        std::mutex write_value_mutex;
-        std::condition_variable write_cond;
-        std::condition_variable read_cond;
 };
 
 StreamBuffer::StreamBuffer(int c_num_writers) {
@@ -91,18 +73,10 @@ StreamBuffer::~StreamBuffer() {
     free(write_ptr);
 }
 
-//TODO error check for when setSize hasnt been called and buffer = NULL
 int StreamBuffer::pop(void **buf) {
     std::unique_lock<std::mutex> lock(read_mutex);
 
     if (read_size_stored == 0) {
-        //std::unique_lock<std::mutex> write_lock(write_value_mutex);
-        /* read_cond.wait(write_lock, [this]{
-            read_size_stored = num_write;
-            num_write = 0;
-            return (read_size_stored > 0);
-        }); */
-        
         write_mutex.lock();
         while (num_write < 1) {
             write_mutex.unlock();
@@ -135,19 +109,13 @@ int StreamBuffer::push(void **buf) {
     void *val = nullptr;
     if (buf == NULL) {
         closed_writers++;
-        //fprintf(stderr, "closed: %d / %d\n", closed_writers, num_writers);
+        
         if (closed_writers < num_writers) {
             return -1;
         }
     } else {
         val = *buf;
     }
-    //fprintf(stderr, "push val Stored: %d / %d\n", write_size_stored, buf_size);
-    /* while (size_stored >= buf_size-1) {
-        lock.unlock();
-        std::this_thread::yield();
-        lock.lock();
-    } */
 
     item *new_item;
     new_item = (item*)malloc(sizeof(item));
@@ -161,11 +129,7 @@ int StreamBuffer::push(void **buf) {
     write_ptr->next_item = new_item;
     
     write_ptr = new_item;
-    // Fix: Use modulo arithmetic for circular buffer
-    write_value_mutex.lock();
     num_write++;
-    write_value_mutex.unlock();
-    //read_cond.notify_all();
     return 1;
 }
 
@@ -175,14 +139,11 @@ template <typename T, typename... Args>
 void getCommaSeparatedValuesFromStream(T *value, Args... args) {
     char c;
     *value = 0;
-    while ((c = getc(stdin)) != EOF)
-    {
-        if (c == ',' || c == '\n')
-        {
+    while ((c = getc(stdin)) != EOF) {
+        if (c == ',' || c == '\n') {
             break;
         }
-        else if (c != '\r')
-        {
+        else if (c != '\r') {
             *value *= 10;
             *value += (int)c - '0';
         }
@@ -223,32 +184,26 @@ static void processStream_char(FILE *input_stream, StreamBuffer *output_stream, 
     int x = 0;
     char line[1024];
 
-    //auto idx = [&](int x, int y, int z){ return x + (y * *parent_x) + (z * *parent_x * *parent_y); };
-
     for (int z = 0; z < z_count; z++) {
         for (int y = 0; y < y_count; y++) {
             if (fgets(line, 1024, input_stream) == NULL) fprintf(stderr, "ERROR READ LINE (%d, %d, %d)\n", x, y, z);
-            //fprintf(stderr, "l: %s\n", line);
+
             int chunk_relative_z = z % parent_z;
             if (chunk == NULL) {
                 chunk = (Chunk*)malloc(sizeof(Chunk));
                 chunk->id = z / parent_z;
                 chunk->block = (char*)malloc(x_count * y_count * parent_z * sizeof(char));
             }
-            //printf("[%d] (%d, %d, %d), (%d, %d, %d): %c\n", current_parent_block, x, y, z, parent_relative_x, parent_relative_y, parent_relative_z, ch);
 
-            //fprintf(stderr, "cb: %d, idx: %d\n", current_parent_block+i, idx(0, parent_relative_y, parent_relative_z));
             memcpy(&(chunk->block[(x_count * y) + (x_count * y_count * chunk_relative_z)]), line, x_count);
 
             if (y == y_count - 1 && chunk_relative_z == parent_z - 1) {
-                //fprintf(stderr, "I: (%d, %d, %d)\n", x, y, z);
                 output_stream->push((void**)&chunk);
                 chunk = NULL;
             }
         }
         fgets(line, 10, input_stream);
     }
-    //fprintf(stderr, "Input End (%d, %d, %d) %d\n", x, y, z, blocks);
     output_stream->push(NULL);
 }
 
@@ -260,11 +215,9 @@ void processChunk(Chunk *chunk, StreamBuffer *output_stream, int x_count, int y_
 #   pragma omp parallel for collapse(2) schedule(dynamic)
     for (int ty = 0; ty < (y_count / parent_y); ty++) {
         for (int tx = 0; tx < (x_count / parent_x); tx++) {
-            //fprintf(stderr, "(%d, %d, %d) %d\n", px, py, chunk->id, current_parent_block);
             int px = tx * parent_x;
             int py = ty * parent_y;
             // Now run greedy meshing *inside* these boundaries.
-            //TODO: maybe use vector with smaller initial array size which can then be dynamically extended if necessary
             bool *visited = (bool*)calloc(parent_x * parent_y * parent_z, sizeof(bool));
             for (int z = 0; z < parent_z; z++) {
                 for (int y = 0; y < parent_y; y++) {
@@ -276,7 +229,6 @@ void processChunk(Chunk *chunk, StreamBuffer *output_stream, int x_count, int y_
                         // Determine max size in X
                         int maxX = x + 1; // 0 1 7
                         while (maxX < parent_x && chunk->block[px + maxX + ((py + y) * x_count) + (z * x_count * y_count)] == target && !visited[(z * parent_y * parent_x) + (y * parent_x) + maxX]) {
-                            //fprintf(stderr, "  %d  %c\n", px + maxX + ((py + y) * parent_x) + (z * parent_x * parent_y), chunk->block[px + maxX + ((py + y) * parent_x) + (z * parent_x * parent_y)]);
                             maxX++; // 1 7
                         }
                         int width = maxX - x;
@@ -330,21 +282,14 @@ void processChunk(Chunk *chunk, StreamBuffer *output_stream, int x_count, int y_
                         sub_block->w = maxY - y;
                         sub_block->h = maxZ - z;
                         sub_block->tag = target;
-                        /* if (ty > 260) {
-                            printf("(%d, %d)\n", tx, ty);
-                            printf(" %d\n", ((parent_x * parent_y * parent_z) * ((ty * (x_count / parent_x)) + tx)) + sub_block_nums[(ty * (x_count / parent_x)) + tx]);
-                        } */
                         chunk->sub_blocks[((parent_x * parent_y * parent_z) * ((ty * (x_count / parent_x)) + tx)) + sub_block_nums[(ty * (x_count / parent_x)) + tx]] = sub_block;
                         sub_block_nums[(ty * (x_count / parent_x)) + tx]++;
-                        //fprintf(stderr, "Compressor: %d,%d,%d,%s\n", sub_block->x, sub_block->y, sub_block->z, (*tag_table)[target].c_str());
-                        //output_stream->push((void **)&parent_block);
                     }
                     // x += 1; x = 1; x = 2
                 }
                 // y = 1
             }
             free(visited);
-            //fprintf(stderr, "check4\n");
         }
     }
     chunk->sub_block_num = sub_block_nums[0];
@@ -362,11 +307,9 @@ void compressStream(StreamBuffer *input_stream, StreamBuffer *output_stream, int
     Chunk *chunk;
 
     do {
-        //fprintf(stderr, "Compressor: get val\n");
         input_stream->pop((void **)&chunk);
 
         if (chunk == nullptr) {
-            //fprintf(stderr, "IN TO COMP END\n");
             output_stream->push(NULL);
             break;
         }
@@ -412,7 +355,6 @@ static int writeCommaSepNumsToBuffer(char *buffer, int start, T num, Args... arg
 static int writeSubBlocksToBuffer(char *buffer, int start, SubBlock **sb, int num_blocks, std::unordered_map<char, std::string> legend) {
     int written = 0;
     for (int i = 0; i < num_blocks; i++) {
-        //fprintf(stderr, " [%d] %d,%d,%d,%d,%d,%d\n", i, sb[i]->x, sb[i]->y, sb[i]->z, sb[i]->l, sb[i]->w, sb[i]->h);
         written += writeCommaSepNumsToBuffer(buffer, start + written, sb[i]->x, sb[i]->y, sb[i]->z, sb[i]->l, sb[i]->w, sb[i]->h);
         memcpy(buffer+start+written, legend[sb[i]->tag].c_str(), legend[sb[i]->tag].length());
         buffer[start+written+legend[sb[i]->tag].length()] = '\n';
@@ -428,39 +370,22 @@ int printSubBlocks(HANDLE hStdout, Chunk *pb, char *buffer, int buf_size, int st
     int remaining = pb->sub_block_num;
     int i = 0;
     while (remaining >= 0) {
-        //fprintf(stderr, "[%d] (%d,%d,%d) %d/%d\n", i, pb->sub_blocks[0]->x, pb->sub_blocks[0]->y, pb->sub_blocks[0]->z, i*num_blocks_per_buf, pb->sub_block_num);
         int num_b = remaining > num_blocks_per_buf ? num_blocks_per_buf : remaining;
-        //fprintf(stderr, "s %d, %d\n", stored, num_b);
         if ((num_b * sbb_size_char) + stored >= buf_size) {
             WriteFile(hStdout, buffer, stored, NULL, NULL);
             stored = 0;
         }
         int len = writeSubBlocksToBuffer(buffer, stored, &(pb->sub_blocks[i*num_blocks_per_buf]), num_b, legend);
-        //fprintf(stderr, "l %d\n", len);
         remaining -= num_blocks_per_buf;
         stored += len;
         
-        //int len = snprintf(buffer, sizeof(buffer), "%d,%d,%d,%d,%d,%d,%s\n", sb->x, sb->y, sb->z, sb->l, sb->w, sb->h, (*tag_table)[sb->tag].c_str());
-        //fprintf(stderr, "%d,%d,%d,%d,%d,%d,%s  [%d]\n", sb->x, sb->y, sb->z, sb->l, sb->w, sb->h, (*tag_table)[sb->tag].c_str(), written+(*tag_table)[sb->tag].length()+1);
-        //fprintf(stderr, "len: %d\n", len);
-        //fprintf(stderr, "Written\n");
         i++;
     }
     return stored;
 }
 
 void displayBlocks(StreamBuffer *input_stream, std::unordered_map<char, std::string> legend) {
-    // TODO check for when input_stream or tag_table not set
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    /* bool valid_handle = true;
-    if (hStdout == INVALID_HANDLE_VALUE) {
-        valid_handle = false;
-    } */
-    int num_chunk = 10;
-    int current_chunk = 0;
-    std::vector<Chunk*> next_blocks;
-    next_blocks.resize(num_chunk, NULL);
-    int next_count = 0;
 
     int buf_size = 16384;
     int stored = 0;
@@ -468,52 +393,14 @@ void displayBlocks(StreamBuffer *input_stream, std::unordered_map<char, std::str
 
     Chunk *chunk = nullptr;
     do {
-        //fprintf(stderr, "DisplayOutput: get val\n");
         input_stream->pop((void **)&chunk);
 
         if (chunk == nullptr) {
-            //fprintf(stderr, "NULL END\n");
             break;
         }
-        //fprintf(stderr, "Display: %d,%d\n", chunk->id, chunk->sub_block_num);
-        /* for (int i = 0; i < chunk->sub_block_num; i++) {
-            fprintf(stdout, "%d,%d,%d,%d,%d,%d,%s\n", chunk->sub_blocks[i]->x, chunk->sub_blocks[i]->y, chunk->sub_blocks[i]->z, chunk->sub_blocks[i]->l, chunk->sub_blocks[i]->w, chunk->sub_blocks[i]->h, legend[chunk->sub_blocks[i]->tag].c_str());
-            free(chunk->sub_blocks[i]);
-        } */
-        if (chunk->id == current_chunk) {
-            stored = printSubBlocks(hStdout, chunk, buffer, buf_size, stored, legend);
-            free(chunk->sub_blocks);
-            free(chunk);
-            current_chunk++;
-            while (next_count > 0) {
-                int p_count = 0;
-                for (int i = 0; i < next_count; i++) {
-                    int t_chunk = next_blocks[i]->id;
-                    if (t_chunk == current_chunk) {
-                        stored = printSubBlocks(hStdout, next_blocks[i], buffer, buf_size, stored, legend);
-                        free(next_blocks[i]->sub_blocks);
-                        free(next_blocks[i]);
-                        p_count++;
-                    } else {
-                        next_blocks[i-p_count] = next_blocks[i];
-                    }
-                }
-                next_count = next_count - p_count;
-                if (p_count > 0) {
-                    current_chunk++;
-                } else {
-                    break;
-                }
-            }
-        } else {
-            if (next_count >= (int)next_blocks.capacity()) {
-                next_blocks.resize(next_blocks.capacity() + num_chunk, NULL);
-                fprintf(stderr, "next_block = %d / %d\n", next_count, num_chunk);
-            }
-            next_blocks[next_count] = chunk;
-            next_count++;
-        }
-        //fprintf(stderr, "%d,%d,%d,%d,%d,%d,%s\n", sub_block->x, sub_block->y, sub_block->z, sub_block->l, sub_block->w, sub_block->h, (*tag_table)[sub_block->tag].c_str());
+        stored = printSubBlocks(hStdout, chunk, buffer, buf_size, stored, legend);
+        free(chunk->sub_blocks);
+        free(chunk);
     } while (chunk != NULL);
     if (stored > 0) {
         WriteFile(hStdout, buffer, stored, NULL, NULL);
@@ -522,71 +409,6 @@ void displayBlocks(StreamBuffer *input_stream, std::unordered_map<char, std::str
     free(buffer);
     CloseHandle(hStdout);
 }
-
-/* int main(int argc, char **argv) {
-    std::ios_base::sync_with_stdio(false);
-    int num_compress_threads = 1;
-    bool verbose = true;
-    if (argc > 1) {
-        int c = atoi(argv[1]);
-        if (c >= 1 && c <= 16) {
-            num_compress_threads = c;
-        }
-    }
-    auto started = std::chrono::high_resolution_clock::now();
-    int x_count, y_count, z_count, parent_x, parent_y, parent_z;
-    std::unordered_map<char, std::string> legend;
-    getCommaSeparatedValuesFromStream(&x_count, &y_count, &z_count, &parent_x, &parent_y, &parent_z);
-    getLegendFromStream(&legend);
-    if (z_count / parent_z < num_compress_threads) {
-        num_compress_threads = z_count / parent_z;
-    }
-    if (verbose) {
-        fprintf(stderr, "%d,%d,%d,%d,%d,%d\n", x_count, y_count, z_count, parent_x, parent_y, parent_z);
-        for (const auto &e : legend) {
-            fprintf(stderr, "%c,%s\n", e.first, e.second.c_str());
-        }
-    }
-
-    StreamBuffer *inputToCompressorBuffer = new StreamBuffer();
-    StreamBuffer *compressorToOutputBuffer = new StreamBuffer(num_compress_threads);
-    std::thread *compressorThreads[num_compress_threads];
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        fprintf(stderr, "Starting %d Compressor Threads:\n  %lld\n", num_compress_threads, std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
-    }
-    for (int i = 0; i < num_compress_threads; i++) {
-        compressorThreads[i] = new std::thread(compressStream, inputToCompressorBuffer, compressorToOutputBuffer, x_count, y_count, z_count, parent_x, parent_y, parent_z);
-    }
-    
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        fprintf(stderr, "Starting Display Thread:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
-    }
-    std::thread displayOutputThread(displayBlocks, compressorToOutputBuffer, legend);
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        fprintf(stderr, "Starting InputStreamReader:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
-    }
-    processStream_char(stdin, inputToCompressorBuffer, x_count, y_count, z_count, parent_x, parent_y, parent_z);
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        fprintf(stderr, "InputStreamReader Runtime:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
-    }
-    for (int i = 0; i < num_compress_threads; i++) {
-        compressorThreads[i]->join();
-        delete compressorThreads[i];
-    }
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        fprintf(stderr, "Compressor Runtime:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
-    }
-    displayOutputThread.join();
-    if (verbose) {
-        auto end = std::chrono::high_resolution_clock::now();
-        fprintf(stderr, "Output Runtime:\n  %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - started).count());
-    }
-} */
 
 int main(int argc, char **argv) {
     std::ios_base::sync_with_stdio(false);
